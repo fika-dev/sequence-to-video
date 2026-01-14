@@ -279,7 +279,13 @@ def reassemble_video(
             if scene:
                 if verbose:
                     print(f"\n  Rendering scene: {scene_id}")
-                composer.recompose_scene(scenario, scene_id)
+                output_path, _ = composer.recompose_scene(scenario, scene_id)
+                if not output_path.exists():
+                    raise RuntimeError(
+                        f"Failed to render scene {scene_id}: file not created at {output_path}"
+                    )
+                if verbose:
+                    print(f"  Created: {output_path}")
 
         if sequence_file_path:
             _save_scenario_to_file(scenario, sequence_file_path)

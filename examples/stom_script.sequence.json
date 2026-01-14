@@ -419,7 +419,8 @@
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "selected_clip_id": "직장 애프터, 직장 섭취 컷 _직장인_clip_005"
     },
     {
       "scene_id": "s14",
@@ -514,7 +515,8 @@
         "transition_next": "cut"
       },
       "sync_mode": "visual",
-      "duration": null
+      "duration": null,
+      "selected_clip_id": "제품보관컷_직장인_clip_001"
     },
     {
       "scene_id": "s17",
@@ -545,7 +547,8 @@
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "selected_clip_id": "직장 애프터 컷_직장인_clip_002"
     },
     {
       "scene_id": "s18",
@@ -576,7 +579,8 @@
         "transition_next": "cut"
       },
       "sync_mode": "visual",
-      "duration": null
+      "duration": null,
+      "selected_clip_id": "내레이션_조정연_clip_003"
     }
   ]
 }

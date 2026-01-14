@@ -122,7 +122,13 @@ class FFmpegRenderer:
             ]
         )
 
-        subprocess.run(cmd, check=True, capture_output=True)
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"FFmpeg failed for scene {scene.scene_id}:\n"
+                f"Command: {' '.join(cmd)}\n"
+                f"stderr: {result.stderr}"
+            )
         return output_path
 
     def render_timeline(
