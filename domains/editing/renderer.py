@@ -166,7 +166,7 @@ class FFmpegRenderer:
         concat_list = self.output_dir / timeline.project_id / "_concat.txt"
         with open(concat_list, "w") as f:
             for scene_file in scene_files:
-                f.write(f"file '{scene_file}'\n")
+                f.write(f"file '{scene_file.resolve()}'\n")
 
         subprocess.run(
             [
@@ -259,7 +259,7 @@ class FFmpegRenderer:
         concat_list = self.output_dir / project_id / "_concat.txt"
         with open(concat_list, "w") as f:
             for scene_file in scene_files:
-                f.write(f"file '{scene_file}'\n")
+                f.write(f"file '{scene_file.resolve()}'\n")
 
         subprocess.run(
             [
