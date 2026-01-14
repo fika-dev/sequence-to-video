@@ -272,7 +272,7 @@ def reassemble_video(
             print(f"Missing {len(missing_scene_ids)} scene(s): {missing_scene_ids}")
             print("Rendering missing scenes...")
 
-        composer = _create_composer_for_reassemble(config, use_cache, verbose)
+        composer = _create_composer_for_reassemble(config, renderer, use_cache, verbose)
 
         for scene_id in missing_scene_ids:
             scene = next((s for s in scenario.scenes if s.scene_id == scene_id), None)
@@ -298,6 +298,7 @@ def reassemble_video(
 
 def _create_composer_for_reassemble(
     config: Config,
+    renderer: FFmpegRenderer,
     use_cache: bool,
     verbose: bool,
 ) -> SequenceComposer:
@@ -340,8 +341,6 @@ def _create_composer_for_reassemble(
         project=config.api.google_project_id,
         location="global",
     )
-
-    renderer = FFmpegRenderer(output_dir=config.paths.review_output)
 
     return SequenceComposer(
         tts_generator=tts,
