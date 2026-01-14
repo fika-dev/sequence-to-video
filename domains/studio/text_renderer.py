@@ -15,7 +15,8 @@ TEXT_STYLES = {
         "font_size": "144px",
         "font_weight": "900",
         "color": "#FFFFFF",
-        "text_shadow": "2px 2px 0 #000000, -2px -2px 0 #000000, 2px -2px 0 #000000, -2px 2px 0 #000000",
+        "-webkit-text-stroke": "3px #000000",
+        "paint-order": "stroke fill",
         "text_align": "center",
         "line_height": "1.2",
         "word_break": "keep-all",
@@ -25,7 +26,8 @@ TEXT_STYLES = {
         "font_size": "144px",
         "font_weight": "900",
         "color": "#FF3333",
-        "text_shadow": "2px 2px 0 #000000, -2px -2px 0 #000000, 2px -2px 0 #000000, -2px 2px 0 #000000",
+        "-webkit-text-stroke": "3px #000000",
+        "paint-order": "stroke fill",
         "text_align": "center",
         "line_height": "1.2",
         "word_break": "keep-all",
@@ -213,7 +215,9 @@ class TextAnimationRenderer:
             await browser.close()
 
         if output_filename:
-            base_name = output_filename.rsplit(".", 1)[0] if "." in output_filename else output_filename
+            base_name = (
+                output_filename.rsplit(".", 1)[0] if "." in output_filename else output_filename
+            )
             output_path = self.output_dir / f"{base_name}.mov"
         else:
             output_path = self.output_dir / f"text_{hash(text) & 0xFFFFFFFF:08x}.mov"
