@@ -12,17 +12,34 @@ class EffectApplier:
         if movement == CameraMovement.NONE:
             return None
 
+        total_frames = int(duration * 30)
         if movement == CameraMovement.ZOOM_IN_SLOW:
-            return f"zoompan=z='min(zoom+0.001,1.3)':d={int(duration * 30)}:s={width}x{height}"
+            return (
+                f"scale={width * 2}:{height * 2},"
+                f"zoompan=z='1+on/{total_frames}*0.3':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+                f"d={total_frames}:s={width}x{height}:fps=30"
+            )
 
         if movement == CameraMovement.ZOOM_OUT_SLOW:
-            return f"zoompan=z='if(eq(on,1),1.3,max(zoom-0.001,1))':d={int(duration * 30)}:s={width}x{height}"
+            return (
+                f"scale={width * 2}:{height * 2},"
+                f"zoompan=z='1.3-on/{total_frames}*0.3':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+                f"d={total_frames}:s={width}x{height}:fps=30"
+            )
 
         if movement == CameraMovement.PAN_LEFT:
-            return f"zoompan=z='1.1':x='iw/2-(iw/zoom/2)+on*2':y='ih/2-(ih/zoom/2)':d={int(duration * 30)}:s={width}x{height}"
+            return (
+                f"scale={width * 2}:{height * 2},"
+                f"zoompan=z='1.1':x='iw/2-(iw/zoom/2)+on*2':y='ih/2-(ih/zoom/2)':"
+                f"d={total_frames}:s={width}x{height}:fps=30"
+            )
 
         if movement == CameraMovement.PAN_RIGHT:
-            return f"zoompan=z='1.1':x='iw/2-(iw/zoom/2)-on*2':y='ih/2-(ih/zoom/2)':d={int(duration * 30)}:s={width}x{height}"
+            return (
+                f"scale={width * 2}:{height * 2},"
+                f"zoompan=z='1.1':x='iw/2-(iw/zoom/2)-on*2':y='ih/2-(ih/zoom/2)':"
+                f"d={total_frames}:s={width}x{height}:fps=30"
+            )
 
         if movement == CameraMovement.SHAKE:
             return "crop=iw-10:ih-10:5+random(0)*5:5+random(1)*5"

@@ -47,6 +47,19 @@ class FFmpegRenderer:
             video_label = "[0:v]"
             filter_complex.append(f"[0:v]copy[v0]")
 
+        camera_movement = CameraMovement(scene.effects.get("camera_movement", "none"))
+        if camera_movement != CameraMovement.NONE:
+            camera_filter = self.effect_applier.get_camera_filter(
+                camera_movement, scene.duration, width, height
+            )
+            if camera_filter:
+                filter_complex.append(f"[v0]{camera_filter}[vcam]")
+                current_video = "[vcam]"
+            else:
+                current_video = "[v0]"
+        else:
+            current_video = "[v0]"
+
         audio_input_idx = 1 if scene.video_path else 1
         if scene.audio_path:
             inputs.extend(["-i", str(scene.audio_path)])
@@ -61,25 +74,16 @@ class FFmpegRenderer:
             is_prores = scene.text_overlay_path.suffix.lower() == ".mov"
             if is_prores:
                 filter_complex.append(
-                    f"[v0][{overlay_idx}:v]overlay=0:0:format=auto[vout]"
+                    f"{current_video}[{overlay_idx}:v]overlay=0:0:format=auto[vout]"
                 )
             else:
                 filter_complex.append(
                     f"[{overlay_idx}:v]chromakey=0x00FF00:0.1:0.2[txtkey];"
-                    f"[v0][txtkey]overlay=0:0[vout]"
+                    f"{current_video}[txtkey]overlay=0:0[vout]"
                 )
             final_video = "[vout]"
         else:
-            final_video = "[v0]"
-
-        camera_movement = CameraMovement(scene.effects.get("camera_movement", "none"))
-        if camera_movement != CameraMovement.NONE:
-            camera_filter = self.effect_applier.get_camera_filter(
-                camera_movement, scene.duration, width, height
-            )
-            if camera_filter:
-                filter_complex.append(f"{final_video}{camera_filter}[vcam]")
-                final_video = "[vcam]"
+            final_video = current_video
 
         filter_str = ";".join(filter_complex) if filter_complex else None
 
