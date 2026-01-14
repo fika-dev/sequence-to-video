@@ -13,32 +13,38 @@ class EffectApplier:
             return None
 
         total_frames = int(duration * 30)
+        zoom_speed = 0.5 / total_frames
+        scaled_w = width * 4
+        scaled_h = height * 4
+
         if movement == CameraMovement.ZOOM_IN_SLOW:
             return (
-                f"scale={width * 2}:{height * 2},"
-                f"zoompan=z='1+on/{total_frames}*0.3':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
-                f"d={total_frames}:s={width}x{height}:fps=30"
+                f"scale={scaled_w}:{scaled_h},"
+                f"zoompan=z='min(1+{zoom_speed}*on,1.5)':d=1:"
+                f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={width}x{height},fps=30"
             )
 
         if movement == CameraMovement.ZOOM_OUT_SLOW:
             return (
-                f"scale={width * 2}:{height * 2},"
-                f"zoompan=z='1.3-on/{total_frames}*0.3':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
-                f"d={total_frames}:s={width}x{height}:fps=30"
+                f"scale={scaled_w}:{scaled_h},"
+                f"zoompan=z='max(1.5-{zoom_speed}*on,1)':d=1:"
+                f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={width}x{height},fps=30"
             )
 
         if movement == CameraMovement.PAN_LEFT:
+            pan_speed = 0.3 / total_frames
             return (
-                f"scale={width * 2}:{height * 2},"
-                f"zoompan=z='1.1':x='iw/2-(iw/zoom/2)+on*2':y='ih/2-(ih/zoom/2)':"
-                f"d={total_frames}:s={width}x{height}:fps=30"
+                f"scale={scaled_w}:{scaled_h},"
+                f"zoompan=z='1.2':d=1:"
+                f"x='iw/2-(iw/zoom/2)+{pan_speed}*on*iw':y='ih/2-(ih/zoom/2)':s={width}x{height},fps=30"
             )
 
         if movement == CameraMovement.PAN_RIGHT:
+            pan_speed = 0.3 / total_frames
             return (
-                f"scale={width * 2}:{height * 2},"
-                f"zoompan=z='1.1':x='iw/2-(iw/zoom/2)-on*2':y='ih/2-(ih/zoom/2)':"
-                f"d={total_frames}:s={width}x{height}:fps=30"
+                f"scale={scaled_w}:{scaled_h},"
+                f"zoompan=z='1.2':d=1:"
+                f"x='iw/2-(iw/zoom/2)-{pan_speed}*on*iw':y='ih/2-(ih/zoom/2)':s={width}x{height},fps=30"
             )
 
         if movement == CameraMovement.SHAKE:
@@ -71,15 +77,15 @@ class EffectApplier:
         duration: float,
     ) -> str | None:
         if effect == "shake_on_beat":
-            enable_expr = "+".join([f"between(t,{t},{t+0.2})" for t in beat_timing])
+            enable_expr = "+".join([f"between(t,{t},{t + 0.2})" for t in beat_timing])
             return f"crop=iw-20:ih-20:10+random(0)*10:10+random(1)*10:enable='{enable_expr}'"
 
         if effect == "flash_on_beat":
-            enable_expr = "+".join([f"between(t,{t},{t+0.1})" for t in beat_timing])
+            enable_expr = "+".join([f"between(t,{t},{t + 0.1})" for t in beat_timing])
             return f"eq=brightness=0.2:enable='{enable_expr}'"
 
         if effect == "zoom_pulse":
-            enable_expr = "+".join([f"between(t,{t},{t+0.3})" for t in beat_timing])
+            enable_expr = "+".join([f"between(t,{t},{t + 0.3})" for t in beat_timing])
             return f"scale=iw*1.1:ih*1.1:enable='{enable_expr}'"
 
         return None
