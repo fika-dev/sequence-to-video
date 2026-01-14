@@ -3,6 +3,7 @@ import math
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import numpy as np
 from google import genai
 
 from domains.library.analyzer import VideoContentAnalyzer
@@ -44,7 +45,15 @@ class AssetRepository:
             with open(index_file, encoding="utf-8") as f:
                 data = json.load(f)
             index = VideoIndex(**data)
+            self._load_embeddings_for_index(index)
             self._indexes[index.source_file.name] = index
+
+    def _load_embeddings_for_index(self, index: VideoIndex) -> None:
+        for clip in index.clips:
+            if clip.embedding_path:
+                embedding_file = self.index_dir / clip.embedding_path
+                if embedding_file.exists():
+                    clip.embedding = np.load(embedding_file).tolist()
 
     def index_video(
         self,
@@ -175,6 +184,16 @@ class AssetRepository:
         return [clip for _, clip in scored_matches]
 
     def _save_index(self, index: VideoIndex) -> None:
+        embeddings_dir = self.index_dir / "embeddings"
+        embeddings_dir.mkdir(parents=True, exist_ok=True)
+
+        for clip in index.clips:
+            if clip.embedding:
+                embedding_filename = f"{clip.clip_id}.npy"
+                embedding_path = embeddings_dir / embedding_filename
+                np.save(embedding_path, np.array(clip.embedding))
+                clip.embedding_path = f"embeddings/{embedding_filename}"
+
         index_path = self.index_dir / f"{index.source_file.stem}.json"
         with open(index_path, "w", encoding="utf-8") as f:
             json.dump(index.model_dump(mode="json"), f, ensure_ascii=False, indent=2, default=str)
@@ -195,7 +214,9 @@ class AssetRepository:
     def regenerate_embeddings(self, verbose: bool = False) -> int:
         updated_count = 0
         for name, index in self._indexes.items():
-            clips_needing_embedding = [c for c in index.clips if not c.embedding]
+            clips_needing_embedding = [
+                c for c in index.clips if not c.embedding and not c.embedding_path
+            ]
             if not clips_needing_embedding:
                 if verbose:
                     print(f"  [SKIP] {name} - all clips have embeddings")

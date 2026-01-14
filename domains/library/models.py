@@ -12,8 +12,9 @@ class VideoClip(BaseModel):
     tags: list[str] = Field(default_factory=list)
     camera_angle: str | None = None
     camera_movement: str | None = None
-    embedding: list[float] | None = None
-    
+    embedding: list[float] | None = Field(default=None, exclude=True)
+    embedding_path: str | None = None
+
     content_type: str | None = None
     appeal_point: str | None = None
     product_focus: str | None = None
