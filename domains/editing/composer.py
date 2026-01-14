@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from domains.editing.models import ComposedScene, Timeline
@@ -43,10 +45,35 @@ class SequenceComposer:
         self.verbose = verbose
         self.max_tts_speed = max_tts_speed
         self.min_tts_speed = min_tts_speed
+        self.max_workers = 4
 
     def _log(self, message: str) -> None:
         if self.verbose:
             print(message)
+
+    def _compose_scenes_parallel(
+        self,
+        scenes: list[Scene],
+        width: int,
+        height: int,
+        video_type: VideoType,
+    ) -> list[ComposedScene]:
+        if len(scenes) <= 1:
+            return [self._compose_scene(s, width, height, video_type) for s in scenes]
+
+        self._log(f"\n[PARALLEL] Composing {len(scenes)} scenes with {self.max_workers} workers...")
+
+        def compose_with_index(args: tuple[int, Scene]) -> tuple[int, ComposedScene]:
+            idx, scene = args
+            self._log(f"\n[Scene {idx + 1}/{len(scenes)}] {scene.scene_id}")
+            composed = self._compose_scene(scene, width, height, video_type)
+            return idx, composed
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            results = list(executor.map(compose_with_index, enumerate(scenes)))
+
+        results.sort(key=lambda x: x[0])
+        return [composed for _, composed in results]
 
     def compose(self, scenario: Scenario, output_filename: str | None = None) -> tuple[Path, Timeline]:
         self._log(f"\n=== Composing: {scenario.project_id} ===")
@@ -62,9 +89,10 @@ class SequenceComposer:
         video_type = scenario.scenario_meta.video_type
         self._log(f"Video type: {video_type.value}")
 
-        for i, scene in enumerate(scenario.scenes, 1):
-            self._log(f"\n[Scene {i}/{len(scenario.scenes)}] {scene.scene_id}")
-            composed = self._compose_scene(scene, timeline.width, timeline.height, video_type)
+        composed_scenes = self._compose_scenes_parallel(
+            scenario.scenes, timeline.width, timeline.height, video_type
+        )
+        for composed in composed_scenes:
             timeline.add_scene(composed)
 
         self._log(f"\n=== Rendering final video ===")
@@ -107,8 +135,10 @@ class SequenceComposer:
         )
 
         video_type = scenario.scenario_meta.video_type
-        for scene in scenario.scenes:
-            composed = self._compose_scene(scene, timeline.width, timeline.height, video_type)
+        composed_scenes = self._compose_scenes_parallel(
+            scenario.scenes, timeline.width, timeline.height, video_type
+        )
+        for composed in composed_scenes:
             timeline.add_scene(composed)
 
         return self.renderer.reassemble_from_scenes(timeline, output_filename)
@@ -122,24 +152,9 @@ class SequenceComposer:
         duration, audio_asset = self._resolve_duration_and_audio(scene)
         self._log(f"  Audio duration: {duration:.2f}s")
 
-        self._log(f"  Acquiring visual ({scene.visual_layer.type.value})...")
-        video_path = self._acquire_visual(scene, duration, width, height, video_type)
-        self._log(f"  Visual: {video_path}")
-
-        text_overlay_path = None
-        if scene.text_overlay:
-            self._log(f"  Rendering text overlay...")
-            text_asset = self.text_renderer.render_overlay(
-                text=scene.text_overlay.content,
-                style_template=scene.text_overlay.style_template,
-                animation=scene.text_overlay.animation.value,
-                position=scene.text_overlay.position,
-                duration=duration,
-                width=width,
-                height=height,
-            )
-            text_overlay_path = text_asset.file_path
-            self._log(f"  Text overlay: {text_overlay_path}")
+        video_path, text_overlay_path = self._acquire_visual_and_text_parallel(
+            scene, duration, width, height, video_type
+        )
 
         effects = {
             "camera_movement": scene.fx_beat.camera_movement.value,
@@ -156,6 +171,57 @@ class SequenceComposer:
             duration=duration,
             effects=effects,
         )
+
+    def _acquire_visual_and_text_parallel(
+        self,
+        scene: Scene,
+        duration: float,
+        width: int,
+        height: int,
+        video_type: VideoType,
+    ) -> tuple[Path | None, Path | None]:
+        has_text_overlay = scene.text_overlay is not None
+
+        if not has_text_overlay:
+            self._log(f"  Acquiring visual ({scene.visual_layer.type.value})...")
+            video_path = self._acquire_visual(scene, duration, width, height, video_type)
+            self._log(f"  Visual: {video_path}")
+            return video_path, None
+
+        self._log(f"  [PARALLEL] Acquiring visual + text overlay...")
+
+        video_path: Path | None = None
+        text_overlay_path: Path | None = None
+
+        def acquire_visual() -> Path | None:
+            return self._acquire_visual(scene, duration, width, height, video_type)
+
+        def render_text() -> Path | None:
+            if not scene.text_overlay:
+                return None
+            text_asset = self.text_renderer.render_overlay(
+                text=scene.text_overlay.content,
+                style_template=scene.text_overlay.style_template,
+                animation=scene.text_overlay.animation.value,
+                position=scene.text_overlay.position,
+                duration=duration,
+                width=width,
+                height=height,
+            )
+            return text_asset.file_path
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            visual_future = executor.submit(acquire_visual)
+            text_future = executor.submit(render_text)
+
+            video_path = visual_future.result()
+            text_overlay_path = text_future.result()
+
+        self._log(f"  Visual: {video_path}")
+        if text_overlay_path:
+            self._log(f"  Text overlay: {text_overlay_path}")
+
+        return video_path, text_overlay_path
 
     def _resolve_duration_and_audio(
         self, scene: Scene

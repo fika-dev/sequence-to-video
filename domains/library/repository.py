@@ -1,5 +1,6 @@
 import json
 import math
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from google import genai
@@ -102,9 +103,27 @@ class AssetRepository:
             print(f"Found {len(all_videos)} video files in {self.raw_footage_dir}")
             print(f"Footage type: {footage_type}")
 
-        for i, video_file in enumerate(all_videos, 1):
+        if len(all_videos) <= 1:
+            for i, video_file in enumerate(all_videos, 1):
+                if verbose:
+                    print(f"\n[{i}/{len(all_videos)}] Processing {video_file.name}")
+                index = self.index_video(
+                    video_file,
+                    force=force,
+                    footage_type=footage_type,
+                    product_context=product_context,
+                    verbose=verbose,
+                )
+                indexes.append(index)
+            return indexes
+
+        if verbose:
+            print(f"[PARALLEL] Indexing with {min(4, len(all_videos))} workers...")
+
+        def index_single(args: tuple[int, Path]) -> tuple[int, VideoIndex]:
+            idx, video_file = args
             if verbose:
-                print(f"\n[{i}/{len(all_videos)}] Processing {video_file.name}")
+                print(f"\n[{idx + 1}/{len(all_videos)}] Processing {video_file.name}")
             index = self.index_video(
                 video_file,
                 force=force,
@@ -112,9 +131,13 @@ class AssetRepository:
                 product_context=product_context,
                 verbose=verbose,
             )
-            indexes.append(index)
+            return idx, index
 
-        return indexes
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            results = list(executor.map(index_single, enumerate(all_videos)))
+
+        results.sort(key=lambda x: x[0])
+        return [index for _, index in results]
 
     def find_clips(
         self,
