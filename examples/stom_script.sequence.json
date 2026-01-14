@@ -9,7 +9,10 @@
     "title": "야식 먹고도 붓기 없는 그 언니의 비밀, 소화제 아니고 '식이섬유'였어?",
     "tone_voice": "energetic",
     "aspect_ratio": "9:16",
-    "resolution": [720, 1280],
+    "resolution": [
+      720,
+      1280
+    ],
     "video_type": "ugc_centered"
   },
   "scenes": [
@@ -24,7 +27,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "A fit stylish woman in her 30s enjoying a late night snack but having a flat stomach, camera zooms out slowly to show her confident posture",
-        "query_tags": ["fit woman", "late night snack", "lifestyle"],
+        "query_tags": [
+          "fit woman",
+          "late night snack",
+          "lifestyle"
+        ],
         "fallback_gen_prompt": "Cinematic shot of a slim woman in a modern kitchen at night, looking at the camera confidently"
       },
       "text_overlay": {
@@ -51,7 +58,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Fast cuts of people pouring enzyme powder into their mouths after eating, looking bloated and uncomfortable",
-        "query_tags": ["eating", "bloated", "enzyme powder"],
+        "query_tags": [
+          "eating",
+          "bloated",
+          "enzyme powder"
+        ],
         "fallback_gen_prompt": "Close up of hands holding diet powder sticks and pouring them, fast motion"
       },
       "text_overlay": {
@@ -78,7 +89,11 @@
       "visual_layer": {
         "type": "motion_graphic_gen",
         "prompt": "3D medical animation of food being broken down into red particles (fat/sugar) inside a stomach and spreading rapidly into the bloodstream",
-        "query_tags": ["digestion", "medical graphic", "absorption"],
+        "query_tags": [
+          "digestion",
+          "medical graphic",
+          "absorption"
+        ],
         "fallback_gen_prompt": "Abstract graphic of particles moving fast through a tube"
       },
       "text_overlay": {
@@ -105,7 +120,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Woman looking directly into the camera, shaking her head 'no' with a serious but helpful expression",
-        "query_tags": ["talking head", "denial", "explanation"],
+        "query_tags": [
+          "talking head",
+          "denial",
+          "explanation"
+        ],
         "fallback_gen_prompt": "A woman pointing to her head suggesting 'think about it'"
       },
       "text_overlay": {
@@ -132,7 +151,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Woman pinching her belly fat with a sigh, a red 'Absorption Complete' stamp graphic appears on the screen",
-        "query_tags": ["belly fat", "unhappy", "diet"],
+        "query_tags": [
+          "belly fat",
+          "unhappy",
+          "diet"
+        ],
         "fallback_gen_prompt": "Close up of a person looking at their waist in the mirror"
       },
       "text_overlay": {
@@ -159,7 +182,12 @@
       "visual_layer": {
         "type": "motion_graphic_gen",
         "prompt": "3D animation of a glowing blue mesh filter forming inside a clean intestine, blocking red particles",
-        "query_tags": ["mesh", "filter", "intestine", "protection"],
+        "query_tags": [
+          "mesh",
+          "filter",
+          "intestine",
+          "protection"
+        ],
         "fallback_gen_prompt": "A grid pattern glowing blue"
       },
       "text_overlay": {
@@ -186,7 +214,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Split screen: Left side shows a sad woman eating a small salad, right side shows a sponge absorbing red liquid rapidly",
-        "query_tags": ["salad", "sponge", "absorption"],
+        "query_tags": [
+          "salad",
+          "sponge",
+          "absorption"
+        ],
         "fallback_gen_prompt": "Woman looking tired of dieting"
       },
       "text_overlay": {
@@ -213,7 +245,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Close up of a scientific experiment where a mesh net scoops out oil from water, leaving clean water behind",
-        "query_tags": ["experiment", "oil filter", "cleaning"],
+        "query_tags": [
+          "experiment",
+          "oil filter",
+          "cleaning"
+        ],
         "fallback_gen_prompt": "Visual of a net catching items"
       },
       "text_overlay": {
@@ -240,7 +276,11 @@
       "visual_layer": {
         "type": "image_gen",
         "prompt": "Premium product packaging of 'STOM' dietary fiber supplement, elegant and clean design, studio lighting",
-        "query_tags": ["product", "supplement", "packaging"],
+        "query_tags": [
+          "product",
+          "supplement",
+          "packaging"
+        ],
         "fallback_gen_prompt": "A white bottle with green leaf accents"
       },
       "text_overlay": {
@@ -254,7 +294,8 @@
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "selected_clip_id": "제품보관컷_직장인_clip_002"
     },
     {
       "scene_id": "s10",
@@ -267,7 +308,11 @@
       "visual_layer": {
         "type": "motion_graphic_gen",
         "prompt": "Animated graphic of sticky fiber strands wrapping around fat molecules like a net and sliding away",
-        "query_tags": ["fiber", "mechanism", "molecular"],
+        "query_tags": [
+          "fiber",
+          "mechanism",
+          "molecular"
+        ],
         "fallback_gen_prompt": "Ropes tying up red balls"
       },
       "text_overlay": {
@@ -294,7 +339,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Before and After comparison: Left side bloated morning face, Right side sharp jawline and flat stomach morning look",
-        "query_tags": ["before after", "bloating", "morning routine"],
+        "query_tags": [
+          "before after",
+          "bloating",
+          "morning routine"
+        ],
         "fallback_gen_prompt": "A woman smiling at her reflection in the morning"
       },
       "text_overlay": {
@@ -321,7 +370,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Two office women in a pantry, one secretly handing a small pill to another, they both smile and nod",
-        "query_tags": ["office", "secret", "sharing"],
+        "query_tags": [
+          "office",
+          "secret",
+          "sharing"
+        ],
         "fallback_gen_prompt": "Colleagues talking in an office breakroom"
       },
       "text_overlay": {
@@ -348,7 +401,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Macro shot of a tiny 10mm white tablet on a fingertip, then a woman swallowing it easily with water",
-        "query_tags": ["pill", "easy swallow", "water"],
+        "query_tags": [
+          "pill",
+          "easy swallow",
+          "water"
+        ],
         "fallback_gen_prompt": "Close up of a small pill"
       },
       "text_overlay": {
@@ -375,7 +432,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Woman sitting comfortably at her office desk, working efficiently without discomfort, loose waistband visible",
-        "query_tags": ["office worker", "comfortable", "focus"],
+        "query_tags": [
+          "office worker",
+          "comfortable",
+          "focus"
+        ],
         "fallback_gen_prompt": "Woman working at a laptop smiling"
       },
       "text_overlay": {
@@ -389,7 +450,8 @@
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "selected_clip_id": "직장 애프터, 직장 섭취 컷 _직장인_clip_006"
     },
     {
       "scene_id": "s15",
@@ -402,7 +464,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Woman coming out of a bathroom looking refreshed and surprised, touching her flat stomach",
-        "query_tags": ["refreshed", "satisfied", "bathroom"],
+        "query_tags": [
+          "refreshed",
+          "satisfied",
+          "bathroom"
+        ],
         "fallback_gen_prompt": "Woman looking relieved and happy"
       },
       "text_overlay": {
@@ -416,7 +482,8 @@
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "selected_clip_id": "안돼요 컷, 밥 반공기 컷, 화장실 오케이 컷, 디저트 간식 안먹어요 컷, 제형 섭취 컷, 제형 보여주기 컷,_clip_002"
     },
     {
       "scene_id": "s16",
@@ -429,7 +496,11 @@
       "visual_layer": {
         "type": "motion_graphic_gen",
         "prompt": "Animated ingredient list showing '100% Plant-based' and '2:1 Golden Ratio' with green leaf icons",
-        "query_tags": ["ingredients", "plant based", "safety"],
+        "query_tags": [
+          "ingredients",
+          "plant based",
+          "safety"
+        ],
         "fallback_gen_prompt": "Green leaves and scientific icons"
       },
       "text_overlay": {
@@ -456,7 +527,11 @@
       "visual_layer": {
         "type": "existing_footage",
         "prompt": "Close up of the woman leaning towards the camera as if sharing a secret, honest expression",
-        "query_tags": ["confession", "honesty", "talking head"],
+        "query_tags": [
+          "confession",
+          "honesty",
+          "talking head"
+        ],
         "fallback_gen_prompt": "Close up of a friendly face"
       },
       "text_overlay": {
@@ -483,7 +558,11 @@
       "visual_layer": {
         "type": "motion_graphic_gen",
         "prompt": "A bright 'Limited Special Price' banner with a countdown timer and a 'Buy Now' button flashing",
-        "query_tags": ["limited offer", "sale", "cta"],
+        "query_tags": [
+          "limited offer",
+          "sale",
+          "cta"
+        ],
         "fallback_gen_prompt": "Red background with white text saying SALE"
       },
       "text_overlay": {
