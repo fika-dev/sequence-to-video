@@ -97,8 +97,9 @@ class FootageSelector:
             print(f"    [SELECTOR] Selected: {selected_id}")
             print(f"    [SELECTOR] Reason: {reason[:80]}...")
 
+        normalized_id = selected_id.strip("[]")
         for clip in eligible_clips:
-            if clip.clip_id == selected_id:
+            if clip.clip_id == selected_id or clip.clip_id == normalized_id:
                 return clip
 
         return None
