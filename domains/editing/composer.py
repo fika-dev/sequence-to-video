@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -58,6 +57,7 @@ class SequenceComposer:
         self.max_workers = 4
         self._used_clip_ids: set[str] = set()
         self._scene_clip_mapping: dict[str, str] = {}
+        self._scene_clips: dict[str, VideoClip | None] = {}
 
     def _log(self, message: str) -> None:
         if self.verbose:
@@ -104,6 +104,7 @@ class SequenceComposer:
 
         self._used_clip_ids.clear()
         self._scene_clip_mapping.clear()
+        self._scene_clips.clear()
 
         self._init_used_clips_from_scenario(scenario)
 
@@ -116,6 +117,9 @@ class SequenceComposer:
         video_type = scenario.scenario_meta.video_type
         self._log(f"Video type: {video_type.value}")
 
+        self._log(f"\n[SEQUENTIAL] Selecting clips for {len(scenario.scenes)} scenes...")
+        self._select_clips_sequential(scenario.scenes, video_type)
+
         composed_scenes = self._compose_scenes_parallel(
             scenario.scenes, timeline.width, timeline.height, video_type
         )
@@ -126,6 +130,72 @@ class SequenceComposer:
 
         self._log(f"\n=== Rendering final video ===")
         return self.renderer.render_timeline(timeline, output_filename), timeline
+
+    def _select_clips_sequential(self, scenes: list[Scene], video_type: VideoType) -> None:
+        for scene in scenes:
+            if video_type == VideoType.AI_GENERATED:
+                continue
+            if scene.visual_layer.type not in (VisualType.EXISTING_FOOTAGE,):
+                if video_type != VideoType.UGC_CENTERED:
+                    continue
+
+            clip = self._find_existing_clip_for_selection(scene)
+            self._scene_clips[scene.scene_id] = clip
+            if clip:
+                self._log(f"  [{scene.scene_id}] Selected: {clip.clip_id}")
+            else:
+                self._log(f"  [{scene.scene_id}] No clip found, will use fallback")
+
+    def _find_existing_clip_for_selection(self, scene: Scene) -> VideoClip | None:
+        if not self.asset_repo:
+            return None
+
+        if scene.selected_clip_id:
+            clip = self.asset_repo.get_clip_by_id(scene.selected_clip_id)
+            if clip:
+                return clip
+
+        search_query = self._build_search_query(scene)
+        candidates = self.asset_repo.find_by_embedding(
+            query=search_query,
+            max_results=20,
+            min_duration=0,
+        )
+
+        if not candidates:
+            candidates = self.asset_repo.get_all_clips()
+
+        if not candidates:
+            return None
+
+        candidates = [c for c in candidates if c.clip_id not in self._used_clip_ids]
+
+        if not candidates:
+            return None
+
+        min_duration = scene.duration or 2.0
+
+        selected: VideoClip | None = None
+        if self.footage_selector:
+            selected = self.footage_selector.select_clip(
+                clips=candidates,
+                audio_text=scene.audio_script.text,
+                visual_prompt=scene.visual_layer.prompt
+                or scene.visual_layer.fallback_gen_prompt
+                or "",
+                query_tags=scene.visual_layer.query_tags,
+                min_duration=min_duration,
+                verbose=self.verbose,
+            )
+        else:
+            eligible = [c for c in candidates if c.duration >= min_duration]
+            selected = eligible[0] if eligible else (candidates[0] if candidates else None)
+
+        if selected:
+            self._used_clip_ids.add(selected.clip_id)
+            self._scene_clip_mapping[scene.scene_id] = selected.clip_id
+
+        return selected
 
     def _update_scenario_with_selected_clips(self, scenario: Scenario) -> None:
         for scene in scenario.scenes:
@@ -146,6 +216,7 @@ class SequenceComposer:
 
         self._used_clip_ids.clear()
         self._scene_clip_mapping.clear()
+        self._scene_clips.clear()
 
         for s in scenario.scenes:
             if s.scene_id != scene_id and s.selected_clip_id:
@@ -153,13 +224,18 @@ class SequenceComposer:
 
         scene.selected_clip_id = None
 
+        video_type = scenario.scenario_meta.video_type
+        clip = self._find_existing_clip_for_selection(scene)
+        self._scene_clips[scene.scene_id] = clip
+        if clip:
+            self._log(f"  Selected new clip: {clip.clip_id}")
+
         timeline = Timeline(
             project_id=scenario.project_id,
             width=scenario.scenario_meta.resolution[0],
             height=scenario.scenario_meta.resolution[1],
         )
 
-        video_type = scenario.scenario_meta.video_type
         composed = self._compose_scene(scene, timeline.width, timeline.height, video_type)
 
         new_clip_id = self._scene_clip_mapping.get(scene_id)
@@ -398,6 +474,9 @@ class SequenceComposer:
         scene: Scene,
         min_duration: float,
     ) -> VideoClip | None:
+        if scene.scene_id in self._scene_clips:
+            return self._scene_clips[scene.scene_id]
+
         if not self.asset_repo:
             return None
 
@@ -407,49 +486,7 @@ class SequenceComposer:
                 self._log(f"    Using pre-selected clip: {scene.selected_clip_id}")
                 return clip
 
-        visual = scene.visual_layer
-        query_tags = visual.query_tags
-
-        search_query = self._build_search_query(scene)
-        candidates = self.asset_repo.find_by_embedding(
-            query=search_query,
-            max_results=20,
-            min_duration=0,
-        )
-
-        if not candidates:
-            candidates = self.asset_repo.get_all_clips()
-
-        if not candidates:
-            return None
-
-        candidates = [c for c in candidates if c.clip_id not in self._used_clip_ids]
-
-        if not candidates:
-            self._log(f"    All candidates already used in this sequence")
-            return None
-
-        self._log(f"    Found {len(candidates)} candidates via embedding search")
-
-        selected: VideoClip | None = None
-        if self.footage_selector:
-            selected = self.footage_selector.select_clip(
-                clips=candidates,
-                audio_text=scene.audio_script.text,
-                visual_prompt=visual.prompt or visual.fallback_gen_prompt or "",
-                query_tags=query_tags,
-                min_duration=min_duration,
-                verbose=self.verbose,
-            )
-        else:
-            eligible = [c for c in candidates if c.duration >= min_duration]
-            selected = eligible[0] if eligible else (candidates[0] if candidates else None)
-
-        if selected:
-            self._used_clip_ids.add(selected.clip_id)
-            self._scene_clip_mapping[scene.scene_id] = selected.clip_id
-
-        return selected
+        return None
 
     def _build_search_query(self, scene: Scene) -> str:
         parts = []

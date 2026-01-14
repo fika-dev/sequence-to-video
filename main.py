@@ -239,27 +239,53 @@ def reassemble_video(
     config: Config | None = None,
     output_filename: str | None = None,
     verbose: bool = False,
+    use_cache: bool = True,
 ) -> Path:
     if config is None:
         config = load_config()
     config.ensure_directories()
 
     parser = ScenarioParser()
+    sequence_file_path: Path | None = None
     if isinstance(sequence_data, dict):
         scenario = parser.parse_dict(sequence_data)
     elif isinstance(sequence_data, Path) or (
         isinstance(sequence_data, str) and Path(sequence_data).exists()
     ):
+        sequence_file_path = Path(sequence_data)
         scenario = parser.parse_file(sequence_data)
     else:
         scenario = parser.parse_json(sequence_data)
 
     renderer = FFmpegRenderer(output_dir=config.paths.review_output)
+    scenes_dir = config.paths.review_output / scenario.project_id / "scenes"
 
     scene_ids = [scene.scene_id for scene in scenario.scenes]
+    missing_scene_ids = []
+    for scene_id in scene_ids:
+        scene_path = scenes_dir / f"{scene_id}.mp4"
+        if not scene_path.exists():
+            missing_scene_ids.append(scene_id)
+
+    if missing_scene_ids:
+        if verbose:
+            print(f"Missing {len(missing_scene_ids)} scene(s): {missing_scene_ids}")
+            print("Rendering missing scenes...")
+
+        composer = _create_composer_for_reassemble(config, use_cache, verbose)
+
+        for scene_id in missing_scene_ids:
+            scene = next((s for s in scenario.scenes if s.scene_id == scene_id), None)
+            if scene:
+                if verbose:
+                    print(f"\n  Rendering scene: {scene_id}")
+                composer.recompose_scene(scenario, scene_id)
+
+        if sequence_file_path:
+            _save_scenario_to_file(scenario, sequence_file_path)
 
     if verbose:
-        print(f"Reassembling {len(scene_ids)} scenes for project: {scenario.project_id}")
+        print(f"\nReassembling {len(scene_ids)} scenes for project: {scenario.project_id}")
 
     output_path = renderer.reassemble_from_scene_ids(
         project_id=scenario.project_id,
@@ -268,6 +294,67 @@ def reassemble_video(
     )
     print(f"\nVideo reassembled: {output_path}")
     return output_path
+
+
+def _create_composer_for_reassemble(
+    config: Config,
+    use_cache: bool,
+    verbose: bool,
+) -> SequenceComposer:
+    cache = AssetCache(cache_dir=config.paths.generated / ".cache") if use_cache else None
+
+    tts = TTSGenerator(output_dir=config.paths.generated / "audio", cache=cache)
+    image_gen = ImageGenerator(
+        output_dir=config.paths.generated / "images",
+        project=config.api.google_project_id,
+        location="global",
+        cache=cache,
+        locale=config.generation.locale,
+        context=config.generation.context,
+    )
+    video_gen = VideoGenerator(
+        output_dir=config.paths.generated / "videos",
+        project=config.api.google_project_id,
+        location="us-central1",
+        cache=cache,
+    )
+    text_renderer = TextAnimationRenderer(
+        output_dir=config.paths.generated / "text_overlays",
+        cache=cache,
+        max_font_size=config.generation.text_overlay.max_font_size,
+    )
+
+    analyzer = VideoContentAnalyzer(
+        project=config.api.google_project_id,
+        location=config.api.google_location,
+        gcs_bucket=config.api.gcs_bucket,
+    )
+    asset_repo = AssetRepository(
+        raw_footage_dir=config.paths.raw_footage,
+        index_dir=config.paths.library_index,
+        analyzer=analyzer,
+        project=config.api.google_project_id,
+    )
+
+    footage_selector = FootageSelector(
+        project=config.api.google_project_id,
+        location="global",
+    )
+
+    renderer = FFmpegRenderer(output_dir=config.paths.review_output)
+
+    return SequenceComposer(
+        tts_generator=tts,
+        image_generator=image_gen,
+        video_generator=video_gen,
+        text_renderer=text_renderer,
+        asset_repository=asset_repo,
+        footage_selector=footage_selector,
+        renderer=renderer,
+        verbose=verbose,
+        max_tts_speed=config.generation.tts.max_speed,
+        min_tts_speed=config.generation.tts.min_speed,
+    )
 
 
 def index_single_file(
@@ -468,6 +555,9 @@ def main():
     reassemble_parser.add_argument("input", help="Path to sequence JSON file")
     reassemble_parser.add_argument("-o", "--output", help="Output filename")
     reassemble_parser.add_argument("--env", help="Path to .env file")
+    reassemble_parser.add_argument(
+        "--no-cache", action="store_true", help="Disable asset caching for missing scenes"
+    )
     reassemble_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
     embed_parser = subparsers.add_parser("embed", help="Generate embeddings for existing indexes")
@@ -527,6 +617,7 @@ def main():
             config=config,
             output_filename=args.output,
             verbose=args.verbose,
+            use_cache=not args.no_cache,
         )
     elif args.command == "embed":
         config = load_config(args.env)
