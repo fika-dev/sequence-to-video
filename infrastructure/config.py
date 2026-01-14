@@ -36,6 +36,20 @@ class TextOverlayConfig(BaseModel):
     max_font_size: int = 90
 
 
+class FFmpegConfig(BaseModel):
+    video_codec: str = "libx264"
+    video_preset: str = "fast"
+    video_crf: int = 23
+    audio_codec: str = "aac"
+    audio_bitrate: str = "128k"
+    prores_profile: str = "4444"
+    prores_pix_fmt: str = "yuva444p10le"
+    zoom_scale_factor: int = 2
+    chromakey_color: str = "0x00FF00"
+    chromakey_similarity: float = 0.1
+    chromakey_blend: float = 0.2
+
+
 class GenerationConfig(BaseModel):
     locale: str = "ko-KR"
     context: str = ""
@@ -48,6 +62,7 @@ class Config(BaseModel):
     api: ApiConfig = Field(default_factory=ApiConfig)
     video: VideoConfig = Field(default_factory=VideoConfig)
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
+    ffmpeg: FFmpegConfig = Field(default_factory=FFmpegConfig)
 
     def ensure_directories(self) -> None:
         self.paths.raw_footage.mkdir(parents=True, exist_ok=True)
