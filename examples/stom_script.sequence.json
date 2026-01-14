@@ -1,0 +1,503 @@
+{
+  "project_id": "stom_diet_fiber_001",
+  "metadata": {
+    "locale": "ko-KR",
+    "context": "Dietary supplement advertisement focusing on fiber-based absorption blocking for 3040 women.",
+    "title": "The Secret Filter Routine for Late-Night Snackers"
+  },
+  "scenario_meta": {
+    "title": "야식 먹고도 붓기 없는 그 언니의 비밀, 소화제 아니고 '식이섬유'였어?",
+    "tone_voice": "energetic",
+    "aspect_ratio": "9:16",
+    "resolution": [720, 1280],
+    "video_type": "ugc_centered"
+  },
+  "scenes": [
+    {
+      "scene_id": "s01",
+      "sequence_order": 1,
+      "audio_script": {
+        "text": "맨날 야식 먹고도 배 안나오게 유지하는 그 언니가 먹는거, 소화 효소인 줄 알았는데 그거 아니래요.",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "A fit stylish woman in her 30s enjoying a late night snack but having a flat stomach, camera zooms out slowly to show her confident posture",
+        "query_tags": ["fit woman", "late night snack", "lifestyle"],
+        "fallback_gen_prompt": "Cinematic shot of a slim woman in a modern kitchen at night, looking at the camera confidently"
+      },
+      "text_overlay": {
+        "content": "야식 먹어도 날씬한 언니의 비밀?",
+        "style_template": "bold_impact_white",
+        "animation": "fade_in_up",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "zoom_out_slow",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s02",
+      "sequence_order": 2,
+      "audio_script": {
+        "text": "효소는 소화를 돕는 거잖아요? 식후에 배 빵빵하다고 습관처럼 효소 털어 넣는 분들 지금이라도 멈춰야해요.",
+        "voice_preset_id": "chirp_v3_korean_female_emphasis",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Fast cuts of people pouring enzyme powder into their mouths after eating, looking bloated and uncomfortable",
+        "query_tags": ["eating", "bloated", "enzyme powder"],
+        "fallback_gen_prompt": "Close up of hands holding diet powder sticks and pouring them, fast motion"
+      },
+      "text_overlay": {
+        "content": "효소 습관, 지금 멈추세요!",
+        "style_template": "bold_impact_red",
+        "animation": "shake",
+        "position": "top"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s03",
+      "sequence_order": 3,
+      "audio_script": {
+        "text": "효소는 먹은 음식을 빠르게 분해해서, 몸에 더 빨리, 더 잘 흡수되라고 열심히 도와주는거예요",
+        "voice_preset_id": "chirp_v3_korean_female_cynical",
+        "speed": 1.1
+      },
+      "visual_layer": {
+        "type": "motion_graphic_gen",
+        "prompt": "3D medical animation of food being broken down into red particles (fat/sugar) inside a stomach and spreading rapidly into the bloodstream",
+        "query_tags": ["digestion", "medical graphic", "absorption"],
+        "fallback_gen_prompt": "Abstract graphic of particles moving fast through a tube"
+      },
+      "text_overlay": {
+        "content": "효소 = 흡수를 돕는 촉매제",
+        "style_template": "subtitle_clean",
+        "animation": "typewriter",
+        "position": "bottom"
+      },
+      "fx_beat": {
+        "camera_movement": "zoom_in_slow",
+        "transition_next": "dissolve"
+      },
+      "sync_mode": "visual",
+      "duration": null
+    },
+    {
+      "scene_id": "s04",
+      "sequence_order": 4,
+      "audio_script": {
+        "text": "그러니까 결국, 우리가 살찌는 건 소화가 안 돼서가 아니라, 필요 이상으로 흡수가 너무 잘 돼서 그런 건데,",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Woman looking directly into the camera, shaking her head 'no' with a serious but helpful expression",
+        "query_tags": ["talking head", "denial", "explanation"],
+        "fallback_gen_prompt": "A woman pointing to her head suggesting 'think about it'"
+      },
+      "text_overlay": {
+        "content": "문제는 소화가 아니라 '흡수'!",
+        "style_template": "bold_impact_white",
+        "animation": "bounce",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "shake",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s05",
+      "sequence_order": 5,
+      "audio_script": {
+        "text": "거기다 소화 잘 되라고 효소까지 넣어주니까, 먹는 그대로 뱃살로 쌓이는 최악의 상황인 거죠.",
+        "voice_preset_id": "chirp_v3_korean_female_emphasis",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Woman pinching her belly fat with a sigh, a red 'Absorption Complete' stamp graphic appears on the screen",
+        "query_tags": ["belly fat", "unhappy", "diet"],
+        "fallback_gen_prompt": "Close up of a person looking at their waist in the mirror"
+      },
+      "text_overlay": {
+        "content": "그대로 뱃살행..?",
+        "style_template": "bold_impact_red",
+        "animation": "fade_in",
+        "position": "bottom"
+      },
+      "fx_beat": {
+        "camera_movement": "zoom_in_slow",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s06",
+      "sequence_order": 6,
+      "audio_script": {
+        "text": "진짜 살 안 찌는 사람들은 소화력이 좋은 게 아니라, 장 속에 흡수를 걸러주는 '거름망'이 아주 촘촘한 거예요.",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "motion_graphic_gen",
+        "prompt": "3D animation of a glowing blue mesh filter forming inside a clean intestine, blocking red particles",
+        "query_tags": ["mesh", "filter", "intestine", "protection"],
+        "fallback_gen_prompt": "A grid pattern glowing blue"
+      },
+      "text_overlay": {
+        "content": "장 속 '거름망'의 차이",
+        "style_template": "bold_impact_white",
+        "animation": "slide_in_left",
+        "position": "top"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "whip_pan_right"
+      },
+      "sync_mode": "visual",
+      "duration": null
+    },
+    {
+      "scene_id": "s07",
+      "sequence_order": 7,
+      "audio_script": {
+        "text": "아무리 굶고 식단 조절해도, 장에서 영양분 100% 다 빨아들이면 열심히 식단한거 아무 소용없는데",
+        "voice_preset_id": "chirp_v3_korean_female_cynical",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Split screen: Left side shows a sad woman eating a small salad, right side shows a sponge absorbing red liquid rapidly",
+        "query_tags": ["salad", "sponge", "absorption"],
+        "fallback_gen_prompt": "Woman looking tired of dieting"
+      },
+      "text_overlay": {
+        "content": "식단해도 안 빠지는 이유",
+        "style_template": "subtitle_clean",
+        "animation": "fade_in",
+        "position": "bottom"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s08",
+      "sequence_order": 8,
+      "audio_script": {
+        "text": "이 거름망이 튼튼하면, 기름진 걸 먹어도 몸에 흡수되기 전에 싹 걸러서 밖으로 내보내거든요.",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Close up of a scientific experiment where a mesh net scoops out oil from water, leaving clean water behind",
+        "query_tags": ["experiment", "oil filter", "cleaning"],
+        "fallback_gen_prompt": "Visual of a net catching items"
+      },
+      "text_overlay": {
+        "content": "흡수 전 차단 & 배출",
+        "style_template": "bold_impact_white",
+        "animation": "fade_in_up",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "zoom_in_slow",
+        "transition_next": "cut"
+      },
+      "sync_mode": "visual",
+      "duration": null
+    },
+    {
+      "scene_id": "s09",
+      "sequence_order": 9,
+      "audio_script": {
+        "text": "먹은 거 죄책감 덜어내려면, 소화제가 아니라 흡수되기 전에 걸러주는 '식이섬유'를 드셔야 돼요.",
+        "voice_preset_id": "chirp_v3_korean_female_emphasis",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "image_gen",
+        "prompt": "Premium product packaging of 'STOM' dietary fiber supplement, elegant and clean design, studio lighting",
+        "query_tags": ["product", "supplement", "packaging"],
+        "fallback_gen_prompt": "A white bottle with green leaf accents"
+      },
+      "text_overlay": {
+        "content": "소화제 NO! '식이섬유' 필수",
+        "style_template": "bold_impact_white",
+        "animation": "bounce",
+        "position": "bottom"
+      },
+      "fx_beat": {
+        "camera_movement": "zoom_in_slow",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s10",
+      "sequence_order": 10,
+      "audio_script": {
+        "text": "단순히 장을 비우는 게 아니라, 끈적한 식이섬유가 음식물을 그물처럼 칭칭 감아서 흡수를 막아버리니까",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "motion_graphic_gen",
+        "prompt": "Animated graphic of sticky fiber strands wrapping around fat molecules like a net and sliding away",
+        "query_tags": ["fiber", "mechanism", "molecular"],
+        "fallback_gen_prompt": "Ropes tying up red balls"
+      },
+      "text_overlay": {
+        "content": "지방/당 흡착 시스템",
+        "style_template": "subtitle_clean",
+        "animation": "typewriter",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "dissolve"
+      },
+      "sync_mode": "visual",
+      "duration": null
+    },
+    {
+      "scene_id": "s11",
+      "sequence_order": 11,
+      "audio_script": {
+        "text": "밤에 라면 먹고 자도 다음 날 아침에 얼굴 붓기 하나도 없고, 아랫배도 전혀 나오지 않아요. 신기하죠?",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Before and After comparison: Left side bloated morning face, Right side sharp jawline and flat stomach morning look",
+        "query_tags": ["before after", "bloating", "morning routine"],
+        "fallback_gen_prompt": "A woman smiling at her reflection in the morning"
+      },
+      "text_overlay": {
+        "content": "야식 먹어도 아침이 가볍다!",
+        "style_template": "bold_impact_white",
+        "animation": "fade_in",
+        "position": "top"
+      },
+      "fx_beat": {
+        "camera_movement": "zoom_out_slow",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s12",
+      "sequence_order": 12,
+      "audio_script": {
+        "text": "요즘 관리 좀 한다는 회사 언니들이 밥 먹기 전에 몰래 챙겨 먹는 게 다 이거라더니 이유가 있더라구요.",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Two office women in a pantry, one secretly handing a small pill to another, they both smile and nod",
+        "query_tags": ["office", "secret", "sharing"],
+        "fallback_gen_prompt": "Colleagues talking in an office breakroom"
+      },
+      "text_overlay": {
+        "content": "직장인 필수 '비밀 관리템'",
+        "style_template": "subtitle_clean",
+        "animation": "slide_in_left",
+        "position": "bottom"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s13",
+      "sequence_order": 13,
+      "audio_script": {
+        "text": "입에 텁텁하게 남는 역한 가루가 아니라서 깔끔하고, 10mm 미니 사이즈 알약이라 목 넘김도 진짜 편해요.",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Macro shot of a tiny 10mm white tablet on a fingertip, then a woman swallowing it easily with water",
+        "query_tags": ["pill", "easy swallow", "water"],
+        "fallback_gen_prompt": "Close up of a small pill"
+      },
+      "text_overlay": {
+        "content": "10mm 초소형 미니 정제",
+        "style_template": "bold_impact_white",
+        "animation": "fade_in_up",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "zoom_in_slow",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s14",
+      "sequence_order": 14,
+      "audio_script": {
+        "text": "하루 종일 사무실에 앉아 있어도 아랫배 쪼이는 느낌 없이 속이 너무 편해서 일에 집중도 훨씬 잘되구요.",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Woman sitting comfortably at her office desk, working efficiently without discomfort, loose waistband visible",
+        "query_tags": ["office worker", "comfortable", "focus"],
+        "fallback_gen_prompt": "Woman working at a laptop smiling"
+      },
+      "text_overlay": {
+        "content": "하루 종일 속이 편안하게",
+        "style_template": "subtitle_clean",
+        "animation": "fade_in",
+        "position": "bottom"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s15",
+      "sequence_order": 15,
+      "audio_script": {
+        "text": "화장실 한번 갔다 오면, 와... 내 뱃속에 이런 게 들어있었나 싶다니까요. 묵은 게 싹 내려가요.",
+        "voice_preset_id": "chirp_v3_korean_female_emphasis",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Woman coming out of a bathroom looking refreshed and surprised, touching her flat stomach",
+        "query_tags": ["refreshed", "satisfied", "bathroom"],
+        "fallback_gen_prompt": "Woman looking relieved and happy"
+      },
+      "text_overlay": {
+        "content": "묵은 것까지 싹- 비움",
+        "style_template": "bold_impact_white",
+        "animation": "bounce",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "shake",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s16",
+      "sequence_order": 16,
+      "audio_script": {
+        "text": "요즘은 성분이 중요해서 열심히 찾아봤는데, 한국인에 맞는 식물성 식이섬유를 2대1 황금비율로 배합한거라 안심해도 되고,",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "motion_graphic_gen",
+        "prompt": "Animated ingredient list showing '100% Plant-based' and '2:1 Golden Ratio' with green leaf icons",
+        "query_tags": ["ingredients", "plant based", "safety"],
+        "fallback_gen_prompt": "Green leaves and scientific icons"
+      },
+      "text_overlay": {
+        "content": "식물성 100% 황금배합",
+        "style_template": "subtitle_clean",
+        "animation": "typewriter",
+        "position": "bottom"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "cut"
+      },
+      "sync_mode": "visual",
+      "duration": null
+    },
+    {
+      "scene_id": "s17",
+      "sequence_order": 17,
+      "audio_script": {
+        "text": "솔직히 싼 가격은 아니거든요? 근데 헬스장 끊고 안 가는 비용 생각하면 이게 훨씬 남는 장사예요.",
+        "voice_preset_id": "chirp_v3_korean_female_whisper",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "prompt": "Close up of the woman leaning towards the camera as if sharing a secret, honest expression",
+        "query_tags": ["confession", "honesty", "talking head"],
+        "fallback_gen_prompt": "Close up of a friendly face"
+      },
+      "text_overlay": {
+        "content": "가장 똑똑한 다이어트 투자",
+        "style_template": "bold_impact_white",
+        "animation": "fade_in",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "zoom_in_slow",
+        "transition_next": "cut"
+      },
+      "sync_mode": "audio",
+      "duration": null
+    },
+    {
+      "scene_id": "s18",
+      "sequence_order": 18,
+      "audio_script": {
+        "text": "그러니까 나중에 사려다 후회하지 말고, 지금 물량 풀렸을 때 무조건 쟁여두세요",
+        "voice_preset_id": "chirp_v3_korean_female_emphasis",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "motion_graphic_gen",
+        "prompt": "A bright 'Limited Special Price' banner with a countdown timer and a 'Buy Now' button flashing",
+        "query_tags": ["limited offer", "sale", "cta"],
+        "fallback_gen_prompt": "Red background with white text saying SALE"
+      },
+      "text_overlay": {
+        "content": "한정 수량 특가! 지금 확인",
+        "style_template": "bold_impact_red",
+        "animation": "bounce",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "cut"
+      },
+      "sync_mode": "visual",
+      "duration": null
+    }
+  ]
+}

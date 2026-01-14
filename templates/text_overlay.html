@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 720px;
+            height: 1280px;
+            background-color: #00FF00;
+            display: flex;
+            overflow: hidden;
+            font-family: 'Noto Sans KR', 'Arial Black', sans-serif;
+        }
+
+        body.position-top {
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 60px;
+        }
+
+        body.position-center {
+            align-items: center;
+            justify-content: center;
+        }
+
+        body.position-bottom {
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 120px;
+        }
+
+        .text-overlay {
+            max-width: 90%;
+            padding: 16px 24px;
+            text-align: center;
+            opacity: 0;
+        }
+
+        .style-bold-impact-white {
+            font-size: 48px;
+            font-weight: 900;
+            color: #FFFFFF;
+            text-shadow: 
+                2px 2px 0 #000,
+                -2px -2px 0 #000,
+                2px -2px 0 #000,
+                -2px 2px 0 #000,
+                3px 3px 8px rgba(0,0,0,0.8);
+        }
+
+        .style-bold-impact-red {
+            font-size: 48px;
+            font-weight: 900;
+            color: #FF3333;
+            text-shadow: 
+                2px 2px 0 #000,
+                -2px -2px 0 #000,
+                2px -2px 0 #000,
+                -2px 2px 0 #000,
+                3px 3px 8px rgba(0,0,0,0.8);
+        }
+
+        .style-subtitle-clean {
+            font-size: 32px;
+            font-weight: 500;
+            color: #FFFFFF;
+            background: rgba(0,0,0,0.6);
+            padding: 12px 24px;
+            border-radius: 4px;
+        }
+
+        .style-highlight-yellow {
+            font-size: 42px;
+            font-weight: 700;
+            color: #000000;
+            background: linear-gradient(180deg, transparent 60%, #FFE500 60%);
+            padding: 8px 16px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(40px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        @keyframes slideInLeft {
+            from { 
+                opacity: 0; 
+                transform: translateX(-100px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+
+        @keyframes slideInRight {
+            from { 
+                opacity: 0; 
+                transform: translateX(100px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+
+        @keyframes bounce {
+            0% { 
+                opacity: 1;
+                transform: translateY(0); 
+            }
+            20% { transform: translateY(-30px); }
+            40% { transform: translateY(0); }
+            60% { transform: translateY(-15px); }
+            80% { transform: translateY(0); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes scaleIn {
+            from { 
+                opacity: 0; 
+                transform: scale(0.5); 
+            }
+            to { 
+                opacity: 1; 
+                transform: scale(1); 
+            }
+        }
+
+        .animation-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .animation-fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        .animation-slide-in-left {
+            animation: slideInLeft 0.4s ease-out forwards;
+        }
+
+        .animation-slide-in-right {
+            animation: slideInRight 0.4s ease-out forwards;
+        }
+
+        .animation-bounce {
+            opacity: 1;
+            animation: bounce 0.8s ease-out;
+        }
+
+        .animation-scale-in {
+            animation: scaleIn 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="position-bottom">
+    <div class="text-overlay style-bold-impact-white animation-fade-in-up">
+        텍스트가 여기에 표시됩니다
+    </div>
+
+    <script>
+        function startAnimation(text, styleClass, animationClass, positionClass) {
+            const body = document.body;
+            const overlay = document.querySelector('.text-overlay');
+
+            body.className = `position-${positionClass || 'bottom'}`;
+
+            overlay.className = 'text-overlay';
+            overlay.classList.add(`style-${styleClass || 'bold-impact-white'}`);
+            overlay.classList.add(`animation-${animationClass || 'fade-in-up'}`);
+
+            overlay.textContent = text;
+        }
+
+        window.startAnimation = startAnimation;
+    </script>
+</body>
+</html>

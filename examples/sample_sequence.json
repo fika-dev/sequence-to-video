@@ -1,0 +1,116 @@
+{
+  "project_id": "stom_diet_video_001",
+  "scenario_meta": {
+    "title": "야식 먹고도 붓기 없는 비밀",
+    "tone_voice": "energetic_professional_female",
+    "aspect_ratio": "9:16"
+  },
+  "scenes": [
+    {
+      "scene_id": "s01",
+      "sequence_order": 1,
+      "audio_script": {
+        "text": "맨날 야식 먹고도 배 안나오게 유지하는 그 언니가 먹는거, 소화 효소인 줄 알았는데 그거 아니래요.",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.1
+      },
+      "visual_layer": {
+        "type": "existing_footage",
+        "query_tags": ["slim woman", "back view", "night snack", "zoom out"],
+        "fallback_gen_prompt": "Cinematic shot, back view of a slim woman eating a snack at night, cozy room lighting, high quality, 4k"
+      },
+      "text_overlay": {
+        "content": "관리의 신",
+        "style_template": "bold_impact_red",
+        "animation": "fade_in_up",
+        "position": "bottom"
+      },
+      "fx_beat": {
+        "camera_movement": "zoom_out_slow",
+        "transition_next": "cut"
+      }
+    },
+    {
+      "scene_id": "s02",
+      "sequence_order": 2,
+      "audio_script": {
+        "text": "효소는 소화를 돕는 거잖아요? 식후에 배 빵빵하다고 습관처럼 효소 털어 넣는 분들 지금이라도 멈춰야해요.",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "image_gen",
+        "prompt": "Person pouring enzyme powder supplement into mouth after meal, close-up, soft lighting, Korean aesthetic"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "cut"
+      }
+    },
+    {
+      "scene_id": "s03",
+      "sequence_order": 3,
+      "audio_script": {
+        "text": "효소는 먹은 음식을 빠르게 분해해서, 몸에 더 빨리, 더 잘 흡수되라고 열심히 도와주는거예요",
+        "voice_preset_id": "chirp_v3_korean_female_cynical",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "motion_graphic_gen",
+        "prompt": "3D medical animation showing food breaking down in stomach, nutrients highlighted in red spreading through body, clean modern style, educational"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "effect": "shake_on_beat",
+        "beat_timing": [0.5, 2.1],
+        "transition_next": "fade"
+      }
+    },
+    {
+      "scene_id": "s04",
+      "sequence_order": 4,
+      "audio_script": {
+        "text": "그러니까 결국, 우리가 살찌는 건 소화가 안 돼서가 아니라, 필요 이상으로 흡수가 너무 잘 돼서 그런 건데,",
+        "voice_preset_id": "chirp_v3_korean_female_confident",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "image_gen",
+        "prompt": "Korean woman looking directly at camera, shaking head disapprovingly, professional lighting, 9:16 vertical format"
+      },
+      "text_overlay": {
+        "content": "문제는 소화가 아냐!",
+        "style_template": "bold_impact_white",
+        "animation": "bounce",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "none",
+        "transition_next": "cut"
+      }
+    },
+    {
+      "scene_id": "s05",
+      "sequence_order": 5,
+      "audio_script": {
+        "text": "거기다 소화 잘 되라고 효소까지 넣어주니까, 먹는 그대로 뱃살로 쌓이는 최악의 상황인 거죠.",
+        "voice_preset_id": "chirp_v3_korean_female_emphasis",
+        "speed": 1.0
+      },
+      "visual_layer": {
+        "type": "image_gen",
+        "prompt": "Woman sighing while holding belly fat, frustrated expression, soft natural lighting, relatable lifestyle shot"
+      },
+      "text_overlay": {
+        "content": "흡수 완료",
+        "style_template": "bold_impact_red",
+        "animation": "scale_in",
+        "position": "center"
+      },
+      "fx_beat": {
+        "camera_movement": "shake",
+        "transition_next": "cut"
+      }
+    }
+  ]
+}
