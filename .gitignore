@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+
+# Project specific
+assets/generated/
+assets/review_output/
+assets/library_index/
+
+# Media files
+*.mp4
+*.mov
+*.webm
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
+# Keep template files
+!templates/*.html
+!templates/*.png
+
+# Metadata files
+*.meta.json
+
+# Keep raw footage directory but ignore contents
+assets/raw_footage/*
+!assets/raw_footage/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
