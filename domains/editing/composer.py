@@ -175,20 +175,13 @@ class SequenceComposer:
     ) -> Path:
         self._log(f"\n=== Reassembling from existing scenes: {scenario.project_id} ===")
 
-        timeline = Timeline(
+        scene_ids = [scene.scene_id for scene in scenario.scenes]
+
+        return self.renderer.reassemble_from_scene_ids(
             project_id=scenario.project_id,
-            width=scenario.scenario_meta.resolution[0],
-            height=scenario.scenario_meta.resolution[1],
+            scene_ids=scene_ids,
+            output_filename=output_filename,
         )
-
-        video_type = scenario.scenario_meta.video_type
-        composed_scenes = self._compose_scenes_parallel(
-            scenario.scenes, timeline.width, timeline.height, video_type
-        )
-        for composed in composed_scenes:
-            timeline.add_scene(composed)
-
-        return self.renderer.reassemble_from_scenes(timeline, output_filename)
 
     def _compose_scene(
         self, scene: Scene, width: int, height: int, video_type: VideoType = VideoType.MIXED

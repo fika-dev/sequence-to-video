@@ -224,20 +224,33 @@ class FFmpegRenderer:
         timeline: Timeline,
         output_filename: str | None = None,
     ) -> Path:
+        scene_ids = [scene.scene_id for scene in timeline.scenes]
+        return self.reassemble_from_scene_ids(
+            project_id=timeline.project_id,
+            scene_ids=scene_ids,
+            output_filename=output_filename,
+        )
+
+    def reassemble_from_scene_ids(
+        self,
+        project_id: str,
+        scene_ids: list[str],
+        output_filename: str | None = None,
+    ) -> Path:
         if output_filename:
             output_path = self.output_dir / output_filename
         else:
-            output_path = self.output_dir / f"{timeline.project_id}_final.mp4"
+            output_path = self.output_dir / f"{project_id}_final.mp4"
 
-        scenes_dir = self.output_dir / timeline.project_id / "scenes"
+        scenes_dir = self.output_dir / project_id / "scenes"
         scene_files = []
-        for scene in timeline.scenes:
-            scene_path = scenes_dir / f"{scene.scene_id}.mp4"
+        for scene_id in scene_ids:
+            scene_path = scenes_dir / f"{scene_id}.mp4"
             if not scene_path.exists():
                 raise FileNotFoundError(f"Scene file not found: {scene_path}")
             scene_files.append(scene_path)
 
-        concat_list = self.output_dir / timeline.project_id / "_concat.txt"
+        concat_list = self.output_dir / project_id / "_concat.txt"
         with open(concat_list, "w") as f:
             for scene_file in scene_files:
                 f.write(f"file '{scene_file}'\n")
@@ -269,7 +282,6 @@ class FFmpegRenderer:
         )
 
         concat_list.unlink()
-        self._save_composition_metadata(timeline, output_path, scenes_dir)
         return output_path
 
     def _save_composition_metadata(

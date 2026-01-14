@@ -29,7 +29,9 @@ def create_video_from_sequence(
     config.ensure_directories()
 
     if verbose:
-        print(f"Config: locale={config.generation.locale}, context={config.generation.context or '(none)'}")
+        print(
+            f"Config: locale={config.generation.locale}, context={config.generation.context or '(none)'}"
+        )
         print(f"Cache: {'enabled' if use_cache else 'disabled'}")
 
     cache = AssetCache(cache_dir=config.paths.generated / ".cache") if use_cache else None
@@ -39,7 +41,9 @@ def create_video_from_sequence(
     sequence_file_path: Path | None = None
     if isinstance(sequence_data, dict):
         scenario = parser.parse_dict(sequence_data)
-    elif isinstance(sequence_data, Path) or (isinstance(sequence_data, str) and Path(sequence_data).exists()):
+    elif isinstance(sequence_data, Path) or (
+        isinstance(sequence_data, str) and Path(sequence_data).exists()
+    ):
         sequence_file_path = Path(sequence_data)
         scenario = parser.parse_file(sequence_data)
     else:
@@ -111,6 +115,7 @@ def create_video_from_sequence(
 
 def _save_scenario_to_file(scenario, file_path: Path) -> None:
     import json
+
     with open(file_path, "r", encoding="utf-8") as f:
         original_data = json.load(f)
 
@@ -142,7 +147,9 @@ def rerender_single_scene(
     sequence_file_path: Path | None = None
     if isinstance(sequence_data, dict):
         scenario = parser.parse_dict(sequence_data)
-    elif isinstance(sequence_data, Path) or (isinstance(sequence_data, str) and Path(sequence_data).exists()):
+    elif isinstance(sequence_data, Path) or (
+        isinstance(sequence_data, str) and Path(sequence_data).exists()
+    ):
         sequence_file_path = Path(sequence_data)
         scenario = parser.parse_file(sequence_data)
     else:
@@ -214,6 +221,7 @@ def rerender_single_scene(
 
 def _update_scene_clip_in_file(file_path: Path, scene_id: str, clip_id: str) -> None:
     import json
+
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -239,55 +247,25 @@ def reassemble_video(
     parser = ScenarioParser()
     if isinstance(sequence_data, dict):
         scenario = parser.parse_dict(sequence_data)
-    elif isinstance(sequence_data, Path) or (isinstance(sequence_data, str) and Path(sequence_data).exists()):
+    elif isinstance(sequence_data, Path) or (
+        isinstance(sequence_data, str) and Path(sequence_data).exists()
+    ):
         scenario = parser.parse_file(sequence_data)
     else:
         scenario = parser.parse_json(sequence_data)
 
-    tts = TTSGenerator(output_dir=config.paths.generated / "audio")
-    image_gen = ImageGenerator(
-        output_dir=config.paths.generated / "images",
-        project=config.api.google_project_id,
-        location="global",
-        locale=config.generation.locale,
-        context=config.generation.context,
-    )
-    video_gen = VideoGenerator(
-        output_dir=config.paths.generated / "videos",
-        project=config.api.google_project_id,
-        location="us-central1",
-    )
-    text_renderer = TextAnimationRenderer(
-        output_dir=config.paths.generated / "text_overlays",
-        max_font_size=config.generation.text_overlay.max_font_size,
-    )
-
-    analyzer = VideoContentAnalyzer(
-        project=config.api.google_project_id,
-        location=config.api.google_location,
-        gcs_bucket=config.api.gcs_bucket,
-    )
-    asset_repo = AssetRepository(
-        raw_footage_dir=config.paths.raw_footage,
-        index_dir=config.paths.library_index,
-        analyzer=analyzer,
-    )
-
     renderer = FFmpegRenderer(output_dir=config.paths.review_output)
 
-    composer = SequenceComposer(
-        tts_generator=tts,
-        image_generator=image_gen,
-        video_generator=video_gen,
-        text_renderer=text_renderer,
-        asset_repository=asset_repo,
-        renderer=renderer,
-        verbose=verbose,
-        max_tts_speed=config.generation.tts.max_speed,
-        min_tts_speed=config.generation.tts.min_speed,
-    )
+    scene_ids = [scene.scene_id for scene in scenario.scenes]
 
-    output_path = composer.reassemble(scenario, output_filename)
+    if verbose:
+        print(f"Reassembling {len(scene_ids)} scenes for project: {scenario.project_id}")
+
+    output_path = renderer.reassemble_from_scene_ids(
+        project_id=scenario.project_id,
+        scene_ids=scene_ids,
+        output_filename=output_filename,
+    )
     print(f"\nVideo reassembled: {output_path}")
     return output_path
 
@@ -445,9 +423,7 @@ def regenerate_embeddings(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate videos from sequence planning data"
-    )
+    parser = argparse.ArgumentParser(description="Generate videos from sequence planning data")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     render_parser = subparsers.add_parser("render", help="Render video from sequence JSON")
@@ -460,11 +436,16 @@ def main():
     index_parser = subparsers.add_parser("index", help="Index raw footage videos")
     index_parser.add_argument("file", nargs="?", help="Single file to index (optional)")
     index_parser.add_argument("--force", action="store_true", help="Re-index all videos")
-    index_parser.add_argument("--type", dest="footage_type", default="generic",
-                              choices=["generic", "product_ugc"],
-                              help="Footage type for analysis (default: generic)")
-    index_parser.add_argument("--context", dest="context_file",
-                              help="Path to product context file (for product_ugc type)")
+    index_parser.add_argument(
+        "--type",
+        dest="footage_type",
+        default="generic",
+        choices=["generic", "product_ugc"],
+        help="Footage type for analysis (default: generic)",
+    )
+    index_parser.add_argument(
+        "--context", dest="context_file", help="Path to product context file (for product_ugc type)"
+    )
     index_parser.add_argument("--env", help="Path to .env file")
     index_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
@@ -481,7 +462,9 @@ def main():
     rerender_parser.add_argument("--no-cache", action="store_true", help="Disable asset caching")
     rerender_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
-    reassemble_parser = subparsers.add_parser("reassemble", help="Reassemble video from existing scene files")
+    reassemble_parser = subparsers.add_parser(
+        "reassemble", help="Reassemble video from existing scene files"
+    )
     reassemble_parser.add_argument("input", help="Path to sequence JSON file")
     reassemble_parser.add_argument("-o", "--output", help="Output filename")
     reassemble_parser.add_argument("--env", help="Path to .env file")
