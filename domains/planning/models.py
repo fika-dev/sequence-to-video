@@ -87,6 +87,7 @@ class Scene(BaseModel):
     fx_beat: FxBeat = Field(default_factory=FxBeat)
     duration: float | None = None
     sync_mode: SyncMode = SyncMode.AUDIO
+    selected_clip_id: str | None = None
 
 
 class ScenarioMeta(BaseModel):

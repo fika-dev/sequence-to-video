@@ -36,9 +36,11 @@ def create_video_from_sequence(
 
     parser = ScenarioParser()
 
+    sequence_file_path: Path | None = None
     if isinstance(sequence_data, dict):
         scenario = parser.parse_dict(sequence_data)
     elif isinstance(sequence_data, Path) or (isinstance(sequence_data, str) and Path(sequence_data).exists()):
+        sequence_file_path = Path(sequence_data)
         scenario = parser.parse_file(sequence_data)
     else:
         scenario = parser.parse_json(sequence_data)
@@ -97,8 +99,30 @@ def create_video_from_sequence(
     )
 
     output_path, _ = composer.compose(scenario, output_filename)
+
+    if sequence_file_path:
+        _save_scenario_to_file(scenario, sequence_file_path)
+        if verbose:
+            print(f"Sequence updated with selected clips: {sequence_file_path}")
+
     print(f"\nVideo created: {output_path}")
     return output_path
+
+
+def _save_scenario_to_file(scenario, file_path: Path) -> None:
+    import json
+    with open(file_path, "r", encoding="utf-8") as f:
+        original_data = json.load(f)
+
+    for scene in scenario.scenes:
+        for orig_scene in original_data.get("scenes", []):
+            if orig_scene.get("scene_id") == scene.scene_id:
+                if scene.selected_clip_id:
+                    orig_scene["selected_clip_id"] = scene.selected_clip_id
+                break
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(original_data, f, ensure_ascii=False, indent=2)
 
 
 def rerender_single_scene(
@@ -115,9 +139,11 @@ def rerender_single_scene(
     cache = AssetCache(cache_dir=config.paths.generated / ".cache") if use_cache else None
 
     parser = ScenarioParser()
+    sequence_file_path: Path | None = None
     if isinstance(sequence_data, dict):
         scenario = parser.parse_dict(sequence_data)
     elif isinstance(sequence_data, Path) or (isinstance(sequence_data, str) and Path(sequence_data).exists()):
+        sequence_file_path = Path(sequence_data)
         scenario = parser.parse_file(sequence_data)
     else:
         scenario = parser.parse_json(sequence_data)
@@ -175,9 +201,29 @@ def rerender_single_scene(
         min_tts_speed=config.generation.tts.min_speed,
     )
 
-    output_path = composer.recompose_scene(scenario, scene_id)
+    output_path, new_clip_id = composer.recompose_scene(scenario, scene_id)
+
+    if sequence_file_path and new_clip_id:
+        _update_scene_clip_in_file(sequence_file_path, scene_id, new_clip_id)
+        if verbose:
+            print(f"Sequence updated: {scene_id} -> {new_clip_id}")
+
     print(f"\nScene re-rendered: {output_path}")
     return output_path
+
+
+def _update_scene_clip_in_file(file_path: Path, scene_id: str, clip_id: str) -> None:
+    import json
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    for scene in data.get("scenes", []):
+        if scene.get("scene_id") == scene_id:
+            scene["selected_clip_id"] = clip_id
+            break
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 def reassemble_video(

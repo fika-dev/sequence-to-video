@@ -185,6 +185,13 @@ class AssetRepository:
             all_clips.extend(index.clips)
         return all_clips
 
+    def get_clip_by_id(self, clip_id: str) -> VideoClip | None:
+        for index in self._indexes.values():
+            for clip in index.clips:
+                if clip.clip_id == clip_id:
+                    return clip
+        return None
+
     def regenerate_embeddings(self, verbose: bool = False) -> int:
         updated_count = 0
         for name, index in self._indexes.items():

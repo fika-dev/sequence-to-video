@@ -18,6 +18,8 @@ class ComposedScene(BaseModel):
     text_overlay_path: Path | None = None
     duration: float
     effects: dict = Field(default_factory=dict)
+    clip_start_time: float | None = None
+    clip_end_time: float | None = None
 
 
 class Timeline(BaseModel):

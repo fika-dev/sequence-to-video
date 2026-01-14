@@ -78,6 +78,7 @@ class ScenarioParser:
             fx_beat=fx_beat,
             sync_mode=sync_mode,
             duration=duration,
+            selected_clip_id=scene_data.get("selected_clip_id"),
         )
 
     def _parse_sync_mode(self, scene_data: dict) -> SyncMode:

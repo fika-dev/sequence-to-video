@@ -25,7 +25,7 @@ class FFmpegRenderer:
     ) -> Path:
         inputs = []
         filter_complex = []
-        
+
         video_label = "[v0]"
         if scene.video_path:
             inputs.extend(["-i", str(scene.video_path)])
@@ -37,13 +37,24 @@ class FFmpegRenderer:
                     f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2[v0]"
                 )
             else:
+                if scene.clip_start_time is not None:
+                    trim_filter = f"trim=start={scene.clip_start_time}:duration={scene.duration},setpts=PTS-STARTPTS"
+                else:
+                    trim_filter = f"trim=duration={scene.duration}"
                 filter_complex.append(
-                    f"[0:v]trim=duration={scene.duration},fps={fps},"
+                    f"[0:v]{trim_filter},fps={fps},"
                     f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
                     f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2[v0]"
                 )
         else:
-            inputs.extend(["-f", "lavfi", "-i", f"color=c=black:s={width}x{height}:d={scene.duration}:r={fps}"])
+            inputs.extend(
+                [
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    f"color=c=black:s={width}x{height}:d={scene.duration}:r={fps}",
+                ]
+            )
             video_label = "[0:v]"
             filter_complex.append(f"[0:v]copy[v0]")
 
@@ -89,20 +100,27 @@ class FFmpegRenderer:
 
         cmd = ["ffmpeg", "-y"]
         cmd.extend(inputs)
-        
+
         if filter_str:
             cmd.extend(["-filter_complex", filter_str])
             cmd.extend(["-map", final_video])
             cmd.extend(["-map", f"{audio_input_idx}:a"])
-        
-        cmd.extend([
-            "-c:v", "libx264",
-            "-preset", "fast",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-t", str(scene.duration),
-            str(output_path),
-        ])
+
+        cmd.extend(
+            [
+                "-c:v",
+                "libx264",
+                "-preset",
+                "fast",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "128k",
+                "-t",
+                str(scene.duration),
+                str(output_path),
+            ]
+        )
 
         subprocess.run(cmd, check=True, capture_output=True)
         return output_path
@@ -148,14 +166,22 @@ class FFmpegRenderer:
             [
                 "ffmpeg",
                 "-y",
-                "-f", "concat",
-                "-safe", "0",
-                "-i", str(concat_list),
-                "-c:v", "libx264",
-                "-preset", "medium",
-                "-crf", "23",
-                "-c:a", "aac",
-                "-b:a", "128k",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(concat_list),
+                "-c:v",
+                "libx264",
+                "-preset",
+                "medium",
+                "-crf",
+                "23",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "128k",
                 str(output_path),
             ],
             check=True,
@@ -167,7 +193,9 @@ class FFmpegRenderer:
             for scene_file in scene_files:
                 scene_file.unlink()
 
-        self._save_composition_metadata(timeline, output_path, scenes_dir if save_individual_scenes else None)
+        self._save_composition_metadata(
+            timeline, output_path, scenes_dir if save_individual_scenes else None
+        )
         return output_path
 
     def render_single_scene(
@@ -218,14 +246,22 @@ class FFmpegRenderer:
             [
                 "ffmpeg",
                 "-y",
-                "-f", "concat",
-                "-safe", "0",
-                "-i", str(concat_list),
-                "-c:v", "libx264",
-                "-preset", "medium",
-                "-crf", "23",
-                "-c:a", "aac",
-                "-b:a", "128k",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(concat_list),
+                "-c:v",
+                "libx264",
+                "-preset",
+                "medium",
+                "-crf",
+                "23",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "128k",
                 str(output_path),
             ],
             check=True,
@@ -249,7 +285,9 @@ class FFmpegRenderer:
                 "duration": scene.duration,
                 "video_source": str(scene.video_path) if scene.video_path else None,
                 "audio_source": str(scene.audio_path) if scene.audio_path else None,
-                "text_overlay_source": str(scene.text_overlay_path) if scene.text_overlay_path else None,
+                "text_overlay_source": str(scene.text_overlay_path)
+                if scene.text_overlay_path
+                else None,
                 "effects": scene.effects,
             }
             if scenes_dir:

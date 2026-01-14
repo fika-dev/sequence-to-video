@@ -1,9 +1,19 @@
 import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 
 from domains.editing.models import ComposedScene, Timeline
+
+
+@dataclass
+class VisualResult:
+    path: Path | None
+    clip_start: float | None = None
+    clip_end: float | None = None
+
+
 from domains.editing.renderer import FFmpegRenderer
 from domains.library.models import VideoClip
 from domains.library.repository import AssetRepository
@@ -46,10 +56,18 @@ class SequenceComposer:
         self.max_tts_speed = max_tts_speed
         self.min_tts_speed = min_tts_speed
         self.max_workers = 4
+        self._used_clip_ids: set[str] = set()
+        self._scene_clip_mapping: dict[str, str] = {}
 
     def _log(self, message: str) -> None:
         if self.verbose:
             print(message)
+
+    def _init_used_clips_from_scenario(self, scenario: Scenario) -> None:
+        for scene in scenario.scenes:
+            if scene.selected_clip_id:
+                self._used_clip_ids.add(scene.selected_clip_id)
+                self._scene_clip_mapping[scene.scene_id] = scene.selected_clip_id
 
     def _compose_scenes_parallel(
         self,
@@ -75,10 +93,19 @@ class SequenceComposer:
         results.sort(key=lambda x: x[0])
         return [composed for _, composed in results]
 
-    def compose(self, scenario: Scenario, output_filename: str | None = None) -> tuple[Path, Timeline]:
+    def compose(
+        self, scenario: Scenario, output_filename: str | None = None
+    ) -> tuple[Path, Timeline]:
         self._log(f"\n=== Composing: {scenario.project_id} ===")
         self._log(f"Scenes: {len(scenario.scenes)}")
-        self._log(f"Resolution: {scenario.scenario_meta.resolution[0]}x{scenario.scenario_meta.resolution[1]}")
+        self._log(
+            f"Resolution: {scenario.scenario_meta.resolution[0]}x{scenario.scenario_meta.resolution[1]}"
+        )
+
+        self._used_clip_ids.clear()
+        self._scene_clip_mapping.clear()
+
+        self._init_used_clips_from_scenario(scenario)
 
         timeline = Timeline(
             project_id=scenario.project_id,
@@ -95,20 +122,36 @@ class SequenceComposer:
         for composed in composed_scenes:
             timeline.add_scene(composed)
 
+        self._update_scenario_with_selected_clips(scenario)
+
         self._log(f"\n=== Rendering final video ===")
         return self.renderer.render_timeline(timeline, output_filename), timeline
+
+    def _update_scenario_with_selected_clips(self, scenario: Scenario) -> None:
+        for scene in scenario.scenes:
+            if scene.scene_id in self._scene_clip_mapping:
+                scene.selected_clip_id = self._scene_clip_mapping[scene.scene_id]
 
     def recompose_scene(
         self,
         scenario: Scenario,
         scene_id: str,
         output_filename: str | None = None,
-    ) -> Path:
+    ) -> tuple[Path, str | None]:
         scene = next((s for s in scenario.scenes if s.scene_id == scene_id), None)
         if not scene:
             raise ValueError(f"Scene not found: {scene_id}")
 
         self._log(f"\n=== Recomposing scene: {scene_id} ===")
+
+        self._used_clip_ids.clear()
+        self._scene_clip_mapping.clear()
+
+        for s in scenario.scenes:
+            if s.scene_id != scene_id and s.selected_clip_id:
+                self._used_clip_ids.add(s.selected_clip_id)
+
+        scene.selected_clip_id = None
 
         timeline = Timeline(
             project_id=scenario.project_id,
@@ -119,7 +162,11 @@ class SequenceComposer:
         video_type = scenario.scenario_meta.video_type
         composed = self._compose_scene(scene, timeline.width, timeline.height, video_type)
 
-        return self.renderer.render_single_scene(composed, timeline)
+        new_clip_id = self._scene_clip_mapping.get(scene_id)
+        if new_clip_id:
+            scene.selected_clip_id = new_clip_id
+
+        return self.renderer.render_single_scene(composed, timeline), new_clip_id
 
     def reassemble(
         self,
@@ -152,7 +199,7 @@ class SequenceComposer:
         duration, audio_asset = self._resolve_duration_and_audio(scene)
         self._log(f"  Audio duration: {duration:.2f}s")
 
-        video_path, text_overlay_path = self._acquire_visual_and_text_parallel(
+        visual_result, text_overlay_path = self._acquire_visual_and_text_parallel(
             scene, duration, width, height, video_type
         )
 
@@ -165,11 +212,13 @@ class SequenceComposer:
 
         return ComposedScene(
             scene_id=scene.scene_id,
-            video_path=video_path,
+            video_path=visual_result.path,
             audio_path=audio_asset.file_path if audio_asset else None,
             text_overlay_path=text_overlay_path,
             duration=duration,
             effects=effects,
+            clip_start_time=visual_result.clip_start,
+            clip_end_time=visual_result.clip_end,
         )
 
     def _acquire_visual_and_text_parallel(
@@ -179,21 +228,18 @@ class SequenceComposer:
         width: int,
         height: int,
         video_type: VideoType,
-    ) -> tuple[Path | None, Path | None]:
+    ) -> tuple[VisualResult, Path | None]:
         has_text_overlay = scene.text_overlay is not None
 
         if not has_text_overlay:
             self._log(f"  Acquiring visual ({scene.visual_layer.type.value})...")
-            video_path = self._acquire_visual(scene, duration, width, height, video_type)
-            self._log(f"  Visual: {video_path}")
-            return video_path, None
+            visual_result = self._acquire_visual(scene, duration, width, height, video_type)
+            self._log(f"  Visual: {visual_result.path}")
+            return visual_result, None
 
         self._log(f"  [PARALLEL] Acquiring visual + text overlay...")
 
-        video_path: Path | None = None
-        text_overlay_path: Path | None = None
-
-        def acquire_visual() -> Path | None:
+        def acquire_visual() -> VisualResult:
             return self._acquire_visual(scene, duration, width, height, video_type)
 
         def render_text() -> Path | None:
@@ -214,18 +260,16 @@ class SequenceComposer:
             visual_future = executor.submit(acquire_visual)
             text_future = executor.submit(render_text)
 
-            video_path = visual_future.result()
+            visual_result = visual_future.result()
             text_overlay_path = text_future.result()
 
-        self._log(f"  Visual: {video_path}")
+        self._log(f"  Visual: {visual_result.path}")
         if text_overlay_path:
             self._log(f"  Text overlay: {text_overlay_path}")
 
-        return video_path, text_overlay_path
+        return visual_result, text_overlay_path
 
-    def _resolve_duration_and_audio(
-        self, scene: Scene
-    ) -> tuple[float, AudioAsset | None]:
+    def _resolve_duration_and_audio(self, scene: Scene) -> tuple[float, AudioAsset | None]:
         sync_mode = scene.sync_mode
 
         if sync_mode == SyncMode.AUDIO:
@@ -262,9 +306,7 @@ class SequenceComposer:
         audio_asset = self._generate_audio(scene, speed_override=clamped_speed)
         return audio_asset.duration, audio_asset
 
-    def _generate_audio(
-        self, scene: Scene, speed_override: float | None = None
-    ) -> AudioAsset:
+    def _generate_audio(self, scene: Scene, speed_override: float | None = None) -> AudioAsset:
         speed = speed_override if speed_override is not None else scene.audio_script.speed
         return self.tts.generate(
             text=scene.audio_script.text,
@@ -280,7 +322,7 @@ class SequenceComposer:
         width: int,
         height: int,
         video_type: VideoType = VideoType.MIXED,
-    ) -> Path | None:
+    ) -> VisualResult:
         if video_type == VideoType.UGC_CENTERED:
             return self._acquire_visual_ugc_centered(scene, duration, width, height)
 
@@ -295,19 +337,21 @@ class SequenceComposer:
         duration: float,
         width: int,
         height: int,
-    ) -> Path | None:
+    ) -> VisualResult:
         visual = scene.visual_layer
 
         clip = self._find_existing_clip(scene, duration)
         if clip:
-            return clip.source_file
+            return VisualResult(
+                path=clip.source_file, clip_start=clip.start_time, clip_end=clip.end_time
+            )
 
         prompt = visual.prompt or visual.fallback_gen_prompt
         if prompt:
             self._log(f"    No existing footage found, falling back to AI generation")
-            return self._generate_image(prompt, width, height)
+            return VisualResult(path=self._generate_image(prompt, width, height))
 
-        return None
+        return VisualResult(path=None)
 
     def _acquire_visual_ai_generated(
         self,
@@ -315,14 +359,14 @@ class SequenceComposer:
         duration: float,
         width: int,
         height: int,
-    ) -> Path | None:
+    ) -> VisualResult:
         visual = scene.visual_layer
         prompt = visual.prompt or visual.fallback_gen_prompt or ""
 
         if visual.type == VisualType.MOTION_GRAPHIC_GEN:
-            return self._generate_video(prompt, duration, width, height)
+            return VisualResult(path=self._generate_video(prompt, duration, width, height))
 
-        return self._generate_image(prompt, width, height)
+        return VisualResult(path=self._generate_image(prompt, width, height))
 
     def _acquire_visual_mixed(
         self,
@@ -330,27 +374,31 @@ class SequenceComposer:
         duration: float,
         width: int,
         height: int,
-    ) -> Path | None:
+    ) -> VisualResult:
         visual = scene.visual_layer
 
         if visual.type == VisualType.EXISTING_FOOTAGE:
             clip = self._find_existing_clip(scene, duration)
             if clip:
-                return clip.source_file
+                return VisualResult(
+                    path=clip.source_file, clip_start=clip.start_time, clip_end=clip.end_time
+                )
 
             if visual.fallback_gen_prompt:
-                return self._generate_image(visual.fallback_gen_prompt, width, height)
-            return None
+                return VisualResult(
+                    path=self._generate_image(visual.fallback_gen_prompt, width, height)
+                )
+            return VisualResult(path=None)
 
         if visual.type == VisualType.IMAGE_GEN:
             prompt = visual.prompt or visual.fallback_gen_prompt or ""
-            return self._generate_image(prompt, width, height)
+            return VisualResult(path=self._generate_image(prompt, width, height))
 
         if visual.type == VisualType.MOTION_GRAPHIC_GEN:
             prompt = visual.prompt or visual.fallback_gen_prompt or ""
-            return self._generate_video(prompt, duration, width, height)
+            return VisualResult(path=self._generate_video(prompt, duration, width, height))
 
-        return None
+        return VisualResult(path=None)
 
     def _find_existing_clip(
         self,
@@ -359,6 +407,12 @@ class SequenceComposer:
     ) -> VideoClip | None:
         if not self.asset_repo:
             return None
+
+        if scene.selected_clip_id:
+            clip = self.asset_repo.get_clip_by_id(scene.selected_clip_id)
+            if clip:
+                self._log(f"    Using pre-selected clip: {scene.selected_clip_id}")
+                return clip
 
         visual = scene.visual_layer
         query_tags = visual.query_tags
@@ -376,10 +430,17 @@ class SequenceComposer:
         if not candidates:
             return None
 
+        candidates = [c for c in candidates if c.clip_id not in self._used_clip_ids]
+
+        if not candidates:
+            self._log(f"    All candidates already used in this sequence")
+            return None
+
         self._log(f"    Found {len(candidates)} candidates via embedding search")
 
+        selected: VideoClip | None = None
         if self.footage_selector:
-            return self.footage_selector.select_clip(
+            selected = self.footage_selector.select_clip(
                 clips=candidates,
                 audio_text=scene.audio_script.text,
                 visual_prompt=visual.prompt or visual.fallback_gen_prompt or "",
@@ -387,9 +448,15 @@ class SequenceComposer:
                 min_duration=min_duration,
                 verbose=self.verbose,
             )
+        else:
+            eligible = [c for c in candidates if c.duration >= min_duration]
+            selected = eligible[0] if eligible else (candidates[0] if candidates else None)
 
-        eligible = [c for c in candidates if c.duration >= min_duration]
-        return eligible[0] if eligible else (candidates[0] if candidates else None)
+        if selected:
+            self._used_clip_ids.add(selected.clip_id)
+            self._scene_clip_mapping[scene.scene_id] = selected.clip_id
+
+        return selected
 
     def _build_search_query(self, scene: Scene) -> str:
         parts = []
