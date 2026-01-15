@@ -83,6 +83,14 @@ class LottieOverlay(BaseModel):
     scale: float = Field(default=0.5, ge=0.1, le=1.0)
 
 
+class SoundEffect(BaseModel):
+    preset_name: str
+    volume: float = Field(default=0.5, ge=0.0, le=1.0)
+    start_time: float = Field(default=0.0, ge=0.0)
+    fade_in: float = Field(default=0.0, ge=0.0)
+    fade_out: float = Field(default=0.0, ge=0.0)
+
+
 class FxBeat(BaseModel):
     camera_movement: CameraMovement = CameraMovement.NONE
     transition_next: Transition = Transition.CUT
@@ -97,6 +105,7 @@ class Scene(BaseModel):
     visual_layer: VisualLayer
     text_overlay: TextOverlay | None = None
     lottie_overlays: list[LottieOverlay] = Field(default_factory=list)
+    sound_effects: list[SoundEffect] = Field(default_factory=list)
     fx_beat: FxBeat = Field(default_factory=FxBeat)
     duration: float | None = None
     sync_mode: SyncMode = SyncMode.AUDIO

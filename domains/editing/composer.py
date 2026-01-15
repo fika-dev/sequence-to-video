@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
-from domains.editing.models import ComposedScene, LottieOverlayAsset, Timeline
+from domains.editing.models import ComposedScene, LottieOverlayAsset, SFXAsset, Timeline
 
 
 @dataclass
@@ -25,6 +25,7 @@ from domains.studio.models import AudioAsset, ImageAsset, VideoAsset
 from domains.studio.text_renderer import TextAnimationRenderer
 from domains.studio.tts_generator import TTSGenerator
 from domains.studio.video_generator import VideoGenerator
+from domains.studio.sfx_provider import SFXProvider
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class SequenceComposer:
         video_generator: VideoGenerator,
         text_renderer: TextAnimationRenderer,
         lottie_renderer: LottieRenderer | None = None,
+        sfx_provider: SFXProvider | None = None,
         asset_repository: AssetRepository | None = None,
         footage_selector: FootageSelector | None = None,
         renderer: FFmpegRenderer | None = None,
@@ -50,6 +52,7 @@ class SequenceComposer:
         self.video_gen = video_generator
         self.text_renderer = text_renderer
         self.lottie_renderer = lottie_renderer or LottieRenderer()
+        self.sfx_provider = sfx_provider or SFXProvider()
         self.asset_repo = asset_repository
         self.footage_selector = footage_selector
         self.renderer = renderer or FFmpegRenderer()
@@ -285,6 +288,10 @@ class SequenceComposer:
         if lottie_overlays:
             self._log(f"  Lottie overlays: {len(lottie_overlays)}")
 
+        sfx_assets = self._resolve_sound_effects(scene)
+        if sfx_assets:
+            self._log(f"  Sound effects: {len(sfx_assets)}")
+
         effects = {
             "camera_movement": scene.fx_beat.camera_movement.value,
             "transition_next": scene.fx_beat.transition_next.value,
@@ -298,6 +305,7 @@ class SequenceComposer:
             audio_path=audio_asset.file_path if audio_asset else None,
             text_overlay_path=text_overlay_path,
             lottie_overlays=lottie_overlays,
+            sfx_assets=sfx_assets,
             duration=duration,
             effects=effects,
             clip_start_time=visual_result.clip_start,
@@ -318,6 +326,27 @@ class SequenceComposer:
                         start_time=overlay.start_time,
                         position=overlay.position,
                         scale=overlay.scale,
+                    )
+                )
+            except FileNotFoundError as e:
+                self._log(f"  Warning: {e}")
+        return result
+
+    def _resolve_sound_effects(self, scene: Scene) -> list[SFXAsset]:
+        if not scene.sound_effects:
+            return []
+
+        result = []
+        for sfx in scene.sound_effects:
+            try:
+                asset = self.sfx_provider.get_sfx(sfx.preset_name)
+                result.append(
+                    SFXAsset(
+                        file_path=asset.file_path,
+                        volume=sfx.volume,
+                        start_time=sfx.start_time,
+                        fade_in=sfx.fade_in,
+                        fade_out=sfx.fade_out,
                     )
                 )
             except FileNotFoundError as e:

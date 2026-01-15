@@ -81,6 +81,38 @@ class FFmpegRenderer:
 
         next_input_idx = audio_input_idx + 1
 
+        sfx_labels = []
+        for i, sfx in enumerate(scene.sfx_assets):
+            sfx_input_idx = next_input_idx
+            next_input_idx += 1
+            inputs.extend(["-i", str(sfx.file_path)])
+
+            sfx_filter_parts = []
+            if sfx.start_time > 0:
+                sfx_filter_parts.append(
+                    f"adelay={int(sfx.start_time * 1000)}|{int(sfx.start_time * 1000)}"
+                )
+            if sfx.fade_in > 0:
+                sfx_filter_parts.append(f"afade=t=in:st=0:d={sfx.fade_in}")
+            if sfx.fade_out > 0:
+                sfx_filter_parts.append(
+                    f"afade=t=out:st={scene.duration - sfx.fade_out}:d={sfx.fade_out}"
+                )
+            sfx_filter_parts.append(f"volume={sfx.volume}")
+
+            sfx_label = f"[sfx{i}]"
+            sfx_filter = ",".join(sfx_filter_parts)
+            filter_complex.append(f"[{sfx_input_idx}:a]{sfx_filter}{sfx_label}")
+            sfx_labels.append(sfx_label)
+
+        if sfx_labels:
+            all_audio_labels = [audio_label] + sfx_labels
+            mix_input = "".join(all_audio_labels)
+            filter_complex.append(
+                f"{mix_input}amix=inputs={len(all_audio_labels)}:duration=longest:normalize=0[amixed]"
+            )
+            audio_label = "[amixed]"
+
         if scene.text_overlay_path:
             overlay_idx = next_input_idx
             next_input_idx += 1
@@ -122,10 +154,14 @@ class FFmpegRenderer:
         cmd = ["ffmpeg", "-y"]
         cmd.extend(inputs)
 
+        has_sfx = len(scene.sfx_assets) > 0
         if filter_str:
             cmd.extend(["-filter_complex", filter_str])
             cmd.extend(["-map", final_video])
-            cmd.extend(["-map", f"{audio_input_idx}:a"])
+            if has_sfx:
+                cmd.extend(["-map", "[amixed]"])
+            else:
+                cmd.extend(["-map", f"{audio_input_idx}:a"])
 
         cmd.extend(
             [

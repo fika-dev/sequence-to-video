@@ -7,7 +7,7 @@ DDD-based video generation pipeline from sequence planning data.
 - **Sequencing Domain**: Generate sequence JSON from scripts using Gemini
 - **Planning Domain**: Parse sequence JSON into structured scenarios
 - **Library Domain**: Index and search existing video footage using Gemini
-- **Studio Domain**: Generate TTS (Chirp v3), images (Gemini 3 Pro), videos (Veo 3.1), text animations, Lottie overlays
+- **Studio Domain**: Generate TTS (Chirp v3), images (Gemini 3 Pro), videos (Veo 3.1), text animations, Lottie overlays, sound effects
 - **Editing Domain**: Compose final video with FFmpeg, apply effects and transitions
 
 ## Installation
@@ -218,6 +218,43 @@ uv run python scripts/test_lottie.py --list-presets
 uv run python scripts/test_lottie.py success
 ```
 
+### Sound Effects (SFX)
+
+Pre-downloaded sound effects from Freesound for common UI feedback sounds.
+
+```bash
+# List available presets
+uv run python scripts/test_sfx.py --list-presets
+
+# Test a preset
+uv run python scripts/test_sfx.py success
+```
+
+Available presets: `success`, `error`, `warning`, `loading`, `whoosh`, `click`
+
+#### Using SFX in Sequence JSON
+
+```json
+{
+  "scenes": [
+    {
+      "scene_id": "s01",
+      "sound_effects": [
+        {"preset_name": "success", "volume": 0.5, "start_time": 0.5},
+        {"preset_name": "whoosh", "volume": 0.3, "start_time": 1.0, "fade_out": 0.2}
+      ]
+    }
+  ]
+}
+```
+
+SFX options:
+- `preset_name`: Sound effect preset name (required)
+- `volume`: Volume level 0.0-1.0 (default: 0.5)
+- `start_time`: Start time in seconds (default: 0.0)
+- `fade_in`: Fade in duration in seconds (default: 0.0)
+- `fade_out`: Fade out duration in seconds (default: 0.0)
+
 #### Adding New Lottie Animations
 
 1. Download Lottie JSON files from [LottieFiles](https://lottiefiles.com) or [IconScout](https://iconscout.com/lottie-animations)
@@ -250,6 +287,7 @@ domains/
 │   ├── video_generator.py     # Veo 3.1 (us-central1 only)
 │   ├── text_renderer.py       # Playwright + FFmpeg text overlays
 │   ├── lottie_renderer.py     # Pre-rendered Lottie MOV loader
+│   ├── sfx_provider.py        # Pre-downloaded sound effects
 │   └── fallback_generator.py  # Black screen fallback
 └── editing/     # FFmpeg composition
     ├── composer.py   # Scene orchestration
@@ -267,13 +305,15 @@ scripts/
 ├── test_video.py            # Video generation testing
 ├── test_text_overlay.py     # Text overlay testing
 ├── test_lottie.py           # Lottie overlay testing
+├── test_sfx.py              # Sound effects testing
 ├── test_sequence.py         # Sequence generation testing
 ├── convert_lottie_to_mov.py # Lottie JSON → MOV conversion
 └── convert_mov_to_mp4.py    # Format conversion
 
 assets/stock/
 ├── lottie/       # Source Lottie JSON files
-└── lottie_mov/   # Pre-rendered MOV files (ProRes 4444 with alpha)
+├── lottie_mov/   # Pre-rendered MOV files (ProRes 4444 with alpha)
+└── sfx/          # Pre-downloaded sound effect MP3 files
 ```
 
 ## Model Configuration

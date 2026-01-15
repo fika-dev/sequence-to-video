@@ -7,6 +7,7 @@ from domains.planning.models import (
     Scene,
     Scenario,
     ScenarioMeta,
+    SoundEffect,
     SyncMode,
     TextOverlay,
     VideoType,
@@ -65,6 +66,7 @@ class ScenarioParser:
         audio_script = self._parse_audio(scene_data)
         visual_layer = self._parse_visual(scene_data)
         text_overlay = self._parse_text_overlay(scene_data)
+        sound_effects = self._parse_sound_effects(scene_data)
         fx_beat = self._parse_fx_beat(scene_data)
         sync_mode = self._parse_sync_mode(scene_data)
         duration = scene_data.get("duration")
@@ -75,6 +77,7 @@ class ScenarioParser:
             audio_script=audio_script,
             visual_layer=visual_layer,
             text_overlay=text_overlay,
+            sound_effects=sound_effects,
             fx_beat=fx_beat,
             sync_mode=sync_mode,
             duration=duration,
@@ -138,6 +141,26 @@ class ScenarioParser:
             return TextOverlay(content=text_content)
 
         return None
+
+    def _parse_sound_effects(self, scene_data: dict) -> list[SoundEffect]:
+        if "sound_effects" not in scene_data:
+            return []
+
+        sfx_list = scene_data["sound_effects"]
+        if not isinstance(sfx_list, list):
+            return []
+
+        return [
+            SoundEffect(
+                preset_name=sfx.get("preset_name", ""),
+                volume=sfx.get("volume", 0.5),
+                start_time=sfx.get("start_time", 0.0),
+                fade_in=sfx.get("fade_in", 0.0),
+                fade_out=sfx.get("fade_out", 0.0),
+            )
+            for sfx in sfx_list
+            if sfx.get("preset_name")
+        ]
 
     def _parse_fx_beat(self, scene_data: dict) -> FxBeat:
         if "fx_beat" in scene_data:
