@@ -28,8 +28,8 @@ class VideoConfig(BaseModel):
 
 
 class TTSConfig(BaseModel):
-    max_speed: float = 1.3
-    min_speed: float = 1.2
+    max_speed: float = 1.25
+    min_speed: float = 1.25
 
 
 class TextOverlayConfig(BaseModel):
