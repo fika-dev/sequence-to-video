@@ -62,6 +62,7 @@ class VisualLayer(BaseModel):
     prompt: str | None = None
     fallback_gen_prompt: str | None = None
     model: str = "google_imagen_3"
+    clip_offset: float | None = None
 
 
 class TextOverlay(BaseModel):
@@ -69,6 +70,8 @@ class TextOverlay(BaseModel):
     style_template: str = "bold_impact_white"
     animation: TextAnimation = TextAnimation.FADE_IN
     position: Literal["top", "center", "bottom"] = "bottom"
+    font_color: str | None = None
+    background_color: str | None = None
 
 
 class LottieOverlay(BaseModel):

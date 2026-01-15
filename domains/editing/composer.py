@@ -267,8 +267,14 @@ class SequenceComposer:
     ) -> ComposedScene:
         self._log(f"  Sync mode: {scene.sync_mode.value}")
 
+        clip_duration = self._get_clip_duration_if_available(scene)
+        effective_scene_duration = scene.duration
+        if scene.duration is None and clip_duration is not None:
+            effective_scene_duration = clip_duration
+            self._log(f"  Using clip duration: {clip_duration:.2f}s")
+
         self._log(f"  Generating audio...")
-        duration, audio_asset = self._resolve_duration_and_audio(scene)
+        duration, audio_asset = self._resolve_duration_and_audio(scene, effective_scene_duration)
         self._log(f"  Audio duration: {duration:.2f}s")
 
         visual_result, text_overlay_path = self._acquire_visual_and_text_parallel(
@@ -350,6 +356,8 @@ class SequenceComposer:
                 duration=duration,
                 width=width,
                 height=height,
+                font_color=scene.text_overlay.font_color,
+                background_color=scene.text_overlay.background_color,
             )
             return text_asset.file_path
 
@@ -366,7 +374,17 @@ class SequenceComposer:
 
         return visual_result, text_overlay_path
 
-    def _resolve_duration_and_audio(self, scene: Scene) -> tuple[float, AudioAsset | None]:
+    def _get_clip_duration_if_available(self, scene: Scene) -> float | None:
+        if scene.scene_id in self._scene_clips:
+            clip = self._scene_clips[scene.scene_id]
+            if clip:
+                offset = scene.visual_layer.clip_offset or 0.0
+                return clip.duration - offset
+        return None
+
+    def _resolve_duration_and_audio(
+        self, scene: Scene, effective_duration: float | None = None
+    ) -> tuple[float, AudioAsset | None]:
         sync_mode = scene.sync_mode
 
         if sync_mode == SyncMode.AUDIO:
@@ -374,7 +392,7 @@ class SequenceComposer:
             return audio_asset.duration, audio_asset
 
         if sync_mode == SyncMode.VISUAL:
-            target_duration = scene.duration or 3.0
+            target_duration = effective_duration or scene.duration or 3.0
             return self._generate_audio_fitted_to_duration(scene, target_duration)
 
         if sync_mode == SyncMode.BEAT:
@@ -382,7 +400,7 @@ class SequenceComposer:
             if beat_timing:
                 target_duration = max(beat_timing) + 0.5
             else:
-                target_duration = scene.duration or 3.0
+                target_duration = effective_duration or scene.duration or 3.0
             return self._generate_audio_fitted_to_duration(scene, target_duration)
 
         audio_asset = self._generate_audio(scene)
@@ -439,8 +457,11 @@ class SequenceComposer:
 
         clip = self._find_existing_clip(scene, duration)
         if clip:
+            clip_start = clip.start_time
+            if visual.clip_offset is not None:
+                clip_start = clip.start_time + visual.clip_offset
             return VisualResult(
-                path=clip.source_file, clip_start=clip.start_time, clip_end=clip.end_time
+                path=clip.source_file, clip_start=clip_start, clip_end=clip.end_time
             )
 
         prompt = visual.prompt or visual.fallback_gen_prompt
@@ -477,8 +498,11 @@ class SequenceComposer:
         if visual.type == VisualType.EXISTING_FOOTAGE:
             clip = self._find_existing_clip(scene, duration)
             if clip:
+                clip_start = clip.start_time
+                if visual.clip_offset is not None:
+                    clip_start = clip.start_time + visual.clip_offset
                 return VisualResult(
-                    path=clip.source_file, clip_start=clip.start_time, clip_end=clip.end_time
+                    path=clip.source_file, clip_start=clip_start, clip_end=clip.end_time
                 )
 
             if visual.fallback_gen_prompt:

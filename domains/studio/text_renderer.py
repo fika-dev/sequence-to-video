@@ -152,9 +152,16 @@ class TextAnimationRenderer:
         height: int = 1280,
         fps: int = 30,
         output_filename: str | None = None,
+        font_color: str | None = None,
+        background_color: str | None = None,
     ) -> VideoAsset:
         style = TEXT_STYLES.get(style_template, TEXT_STYLES["bold_impact_white"]).copy()
         animation_css = ANIMATION_CSS.get(animation, "")
+
+        if font_color:
+            style["color"] = font_color
+        if background_color:
+            style["background"] = background_color
 
         style = self._apply_max_font_size(style)
 
@@ -266,6 +273,8 @@ class TextAnimationRenderer:
         height: int = 1280,
         fps: int = 30,
         output_filename: str | None = None,
+        font_color: str | None = None,
+        background_color: str | None = None,
     ) -> VideoAsset:
         cache_params = {
             "text": text,
@@ -276,6 +285,8 @@ class TextAnimationRenderer:
             "width": width,
             "height": height,
             "fps": fps,
+            "font_color": font_color,
+            "background_color": background_color,
         }
 
         if self.cache:
@@ -300,6 +311,8 @@ class TextAnimationRenderer:
                 height=height,
                 fps=fps,
                 output_filename=output_filename,
+                font_color=font_color,
+                background_color=background_color,
             )
         )
 
