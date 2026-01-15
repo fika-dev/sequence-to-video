@@ -6,8 +6,9 @@ from google.genai import types
 
 from domains.sequencing.models import SequenceMetadata
 
+PRESETS_DIR = Path("assets/presets")
 
-SEQUENCE_GENERATION_PROMPT = '''You are a video sequence planner for short-form vertical videos (9:16 aspect ratio).
+SEQUENCE_GENERATION_PROMPT = """You are a video sequence planner for short-form vertical videos (9:16 aspect ratio).
 
 Given a script/scenario, generate a detailed sequence JSON that can be used to create a video.
 
@@ -49,10 +50,27 @@ Then generate a sequence with the following structure:
       }},
       "text_overlay": {{
         "content": "text to show on screen",
-        "style_template": "bold_impact_white|bold_impact_red|subtitle_clean",
+        "style": "bold_impact_white|bold_impact_red|subtitle_clean",
         "animation": "fade_in|fade_in_up|slide_in_left|bounce|typewriter",
         "position": "top|center|bottom"
       }},
+      "lottie_overlays": [
+        {{
+          "lottie_name": "preset_name",
+          "start_time": 0.0,
+          "position": "center|top|bottom|top-left|top-right|bottom-left|bottom-right",
+          "scale": 0.5
+        }}
+      ],
+      "sound_effects": [
+        {{
+          "preset_name": "preset_name",
+          "volume": 0.5,
+          "start_time": 0.0,
+          "fade_in": 0.0,
+          "fade_out": 0.0
+        }}
+      ],
       "fx_beat": {{
         "camera_movement": "none|zoom_in_slow|zoom_out_slow|pan_left|pan_right|shake",
         "transition_next": "cut|fade|whip_pan_left|whip_pan_right|dissolve"
@@ -71,6 +89,10 @@ Voice presets available:
 - chirp_v3_korean_female_whisper (Korean, female, whisper)
 - chirp_v3_korean_male_confident (Korean, male, confident)
 
+{lottie_presets_section}
+
+{sfx_presets_section}
+
 Guidelines:
 1. Break the script into logical scenes (typically 3-10 seconds each)
 2. Each scene should have clear visual direction
@@ -85,11 +107,47 @@ Guidelines:
    - "ugc_centered": Prioritize existing footage library, use AI generation only as fallback
    - "ai_generated": Always use AI to generate images/videos, ignore existing footage
    - "mixed": Follow each scene's visual_layer.type setting (default)
+8. lottie_overlays: Use sparingly for emphasis moments (success confirmations, warnings, etc.). Most scenes should have empty array.
+9. sound_effects: Use sparingly for key moments. Most scenes should have empty array. Match SFX to visual/narrative beats.
 
 SCRIPT/SCENARIO:
 {script}
 
-Generate the sequence JSON:'''
+Generate the sequence JSON:"""
+
+
+def _load_presets(filename: str) -> dict:
+    preset_file = PRESETS_DIR / filename
+    if preset_file.exists():
+        with open(preset_file, encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def _format_lottie_presets_section() -> str:
+    presets = _load_presets("lottie_presets.json")
+    if not presets:
+        return "Lottie animation presets: (none available)"
+
+    lines = ["Lottie animation presets available:"]
+    for name, info in presets.items():
+        desc = info.get("description", "")
+        use_case = info.get("use_case", "")
+        lines.append(f"- {name}: {desc} (use case: {use_case})")
+    return "\n".join(lines)
+
+
+def _format_sfx_presets_section() -> str:
+    presets = _load_presets("sfx_presets.json")
+    if not presets:
+        return "Sound effect presets: (none available)"
+
+    lines = ["Sound effect presets available:"]
+    for name, info in presets.items():
+        desc = info.get("description", "")
+        use_case = info.get("use_case", "")
+        lines.append(f"- {name}: {desc} (use case: {use_case})")
+    return "\n".join(lines)
 
 
 class SequenceGenerator:
@@ -108,6 +166,13 @@ class SequenceGenerator:
             location=location,
         )
 
+    def _build_prompt(self, script: str) -> str:
+        return SEQUENCE_GENERATION_PROMPT.format(
+            script=script,
+            lottie_presets_section=_format_lottie_presets_section(),
+            sfx_presets_section=_format_sfx_presets_section(),
+        )
+
     def generate_from_script(
         self,
         script: str,
@@ -115,11 +180,11 @@ class SequenceGenerator:
         verbose: bool = False,
     ) -> tuple[dict, SequenceMetadata]:
         if verbose:
-            print(f"Generating sequence from script...")
+            print("Generating sequence from script...")
             print(f"  Model: {self.model}")
             print(f"  Script length: {len(script)} chars")
 
-        prompt = SEQUENCE_GENERATION_PROMPT.format(script=script)
+        prompt = self._build_prompt(script)
 
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -133,7 +198,10 @@ class SequenceGenerator:
         )
 
         if verbose:
-            print(f"  Response received, parsing...")
+            print("  Response received, parsing...")
+
+        if response.text is None:
+            raise ValueError("Empty response from model")
 
         sequence_data = self._parse_response(response.text)
 

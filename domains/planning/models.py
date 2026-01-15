@@ -38,6 +38,12 @@ class TextAnimation(str, Enum):
     TYPEWRITER = "typewriter"
 
 
+class TextStyle(str, Enum):
+    BOLD_IMPACT_WHITE = "bold_impact_white"
+    BOLD_IMPACT_RED = "bold_impact_red"
+    SUBTITLE_CLEAN = "subtitle_clean"
+
+
 class SyncMode(str, Enum):
     AUDIO = "audio"
     VISUAL = "visual"
@@ -67,7 +73,7 @@ class VisualLayer(BaseModel):
 
 class TextOverlay(BaseModel):
     content: str
-    style_template: str = "bold_impact_white"
+    style: TextStyle = TextStyle.BOLD_IMPACT_WHITE
     animation: TextAnimation = TextAnimation.FADE_IN
     position: Literal["top", "center", "bottom"] = "bottom"
     font_color: str | None = None
@@ -91,6 +97,21 @@ class SoundEffect(BaseModel):
     fade_out: float = Field(default=0.0, ge=0.0)
 
 
+class PreparedAssets(BaseModel):
+    """Stores paths to already-generated assets for a scene.
+
+    When present, the composer will reuse these assets instead of regenerating.
+    Set individual fields to None to force regeneration of that specific asset.
+    """
+
+    audio_path: str | None = None
+    audio_duration: float | None = None
+    visual_path: str | None = None
+    visual_clip_start: float | None = None
+    visual_clip_end: float | None = None
+    text_overlay_path: str | None = None
+
+
 class FxBeat(BaseModel):
     camera_movement: CameraMovement = CameraMovement.NONE
     transition_next: Transition = Transition.CUT
@@ -110,6 +131,7 @@ class Scene(BaseModel):
     duration: float | None = None
     sync_mode: SyncMode = SyncMode.AUDIO
     selected_clip_id: str | None = None
+    prepared: PreparedAssets | None = None
 
 
 class ScenarioMeta(BaseModel):

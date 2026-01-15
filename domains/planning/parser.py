@@ -4,12 +4,14 @@ from pathlib import Path
 from domains.planning.models import (
     AudioScript,
     FxBeat,
+    PreparedAssets,
     Scene,
     Scenario,
     ScenarioMeta,
     SoundEffect,
     SyncMode,
     TextOverlay,
+    TextStyle,
     VideoType,
     VisualLayer,
     VisualType,
@@ -71,6 +73,8 @@ class ScenarioParser:
         sync_mode = self._parse_sync_mode(scene_data)
         duration = scene_data.get("duration")
 
+        prepared = self._parse_prepared(scene_data)
+
         return Scene(
             scene_id=scene_id,
             sequence_order=sequence_order,
@@ -82,6 +86,7 @@ class ScenarioParser:
             sync_mode=sync_mode,
             duration=duration,
             selected_clip_id=scene_data.get("selected_clip_id"),
+            prepared=prepared,
         )
 
     def _parse_sync_mode(self, scene_data: dict) -> SyncMode:
@@ -130,9 +135,14 @@ class ScenarioParser:
     def _parse_text_overlay(self, scene_data: dict) -> TextOverlay | None:
         if "text_overlay" in scene_data:
             to = scene_data["text_overlay"]
+            style_str = to.get("style") or to.get("style_template", "bold_impact_white")
+            try:
+                style = TextStyle(style_str)
+            except ValueError:
+                style = TextStyle.BOLD_IMPACT_WHITE
             return TextOverlay(
                 content=to.get("content", ""),
-                style_template=to.get("style_template", "bold_impact_white"),
+                style=style,
             )
 
         visual_note = scene_data.get("scene_visual_note", "")
@@ -172,6 +182,21 @@ class ScenarioParser:
                 beat_timing=fb.get("beat_timing", []),
             )
         return FxBeat()
+
+    def _parse_prepared(self, scene_data: dict) -> PreparedAssets | None:
+        if "prepared" not in scene_data:
+            return None
+        prep = scene_data["prepared"]
+        if not prep:
+            return None
+        return PreparedAssets(
+            audio_path=prep.get("audio_path"),
+            audio_duration=prep.get("audio_duration"),
+            visual_path=prep.get("visual_path"),
+            visual_clip_start=prep.get("visual_clip_start"),
+            visual_clip_end=prep.get("visual_clip_end"),
+            text_overlay_path=prep.get("text_overlay_path"),
+        )
 
     def _infer_voice_preset(self, audio_note: str) -> str:
         note_lower = audio_note.lower()

@@ -17,7 +17,7 @@ from domains.editing.renderer import FFmpegRenderer
 from domains.library.models import VideoClip
 from domains.library.repository import AssetRepository
 from domains.library.selector import FootageSelector
-from domains.planning.models import Scene, Scenario, SyncMode, VideoType, VisualType
+from domains.planning.models import PreparedAssets, Scene, Scenario, SyncMode, VideoType, VisualType
 from domains.studio.fallback_generator import FallbackGenerator
 from domains.studio.image_generator import ImageGenerator
 from domains.studio.lottie_renderer import LottieRenderer
@@ -133,6 +133,7 @@ class SequenceComposer:
             timeline.add_scene(composed)
 
         self._update_scenario_with_selected_clips(scenario)
+        self._update_scenario_with_prepared_assets(scenario, composed_scenes)
 
         self._log(f"\n=== Rendering final video ===")
         return self.renderer.render_timeline(timeline, output_filename), timeline
@@ -208,6 +209,25 @@ class SequenceComposer:
             if scene.scene_id in self._scene_clip_mapping:
                 scene.selected_clip_id = self._scene_clip_mapping[scene.scene_id]
 
+    def _update_scenario_with_prepared_assets(
+        self, scenario: Scenario, composed_scenes: list[ComposedScene]
+    ) -> None:
+        scene_map = {s.scene_id: s for s in scenario.scenes}
+        for composed in composed_scenes:
+            scene = scene_map.get(composed.scene_id)
+            if not scene:
+                continue
+            scene.prepared = PreparedAssets(
+                audio_path=str(composed.audio_path) if composed.audio_path else None,
+                audio_duration=composed.duration if composed.audio_path else None,
+                visual_path=str(composed.video_path) if composed.video_path else None,
+                visual_clip_start=composed.clip_start_time,
+                visual_clip_end=composed.clip_end_time,
+                text_overlay_path=str(composed.text_overlay_path)
+                if composed.text_overlay_path
+                else None,
+            )
+
     def recompose_scene(
         self,
         scenario: Scenario,
@@ -228,13 +248,22 @@ class SequenceComposer:
             if s.scene_id != scene_id and s.selected_clip_id:
                 self._used_clip_ids.add(s.selected_clip_id)
 
-        scene.selected_clip_id = None
-
         video_type = scenario.scenario_meta.video_type
-        clip = self._find_existing_clip_for_selection(scene)
-        self._scene_clips[scene.scene_id] = clip
-        if clip:
-            self._log(f"  Selected new clip: {clip.clip_id}")
+
+        has_prepared_visual = (
+            scene.prepared
+            and scene.prepared.visual_path
+            and Path(scene.prepared.visual_path).exists()
+        )
+
+        if has_prepared_visual:
+            self._log(f"  Using prepared visual, skipping clip selection")
+        else:
+            scene.selected_clip_id = None
+            clip = self._find_existing_clip_for_selection(scene)
+            self._scene_clips[scene.scene_id] = clip
+            if clip:
+                self._log(f"  Selected new clip: {clip.clip_id}")
 
         timeline = Timeline(
             project_id=scenario.project_id,
@@ -247,6 +276,8 @@ class SequenceComposer:
         new_clip_id = self._scene_clip_mapping.get(scene_id)
         if new_clip_id:
             scene.selected_clip_id = new_clip_id
+
+        self._update_scenario_with_prepared_assets(scenario, [composed])
 
         return self.renderer.render_single_scene(composed, timeline), new_clip_id
 
@@ -363,11 +394,24 @@ class SequenceComposer:
     ) -> tuple[VisualResult, Path | None]:
         has_text_overlay = scene.text_overlay is not None
 
+        prepared_text_path: Path | None = None
+        if scene.prepared and scene.prepared.text_overlay_path:
+            prepared_text_path = Path(scene.prepared.text_overlay_path)
+            if not prepared_text_path.exists():
+                prepared_text_path = None
+
         if not has_text_overlay:
             self._log(f"  Acquiring visual ({scene.visual_layer.type.value})...")
             visual_result = self._acquire_visual(scene, duration, width, height, video_type)
             self._log(f"  Visual: {visual_result.path}")
             return visual_result, None
+
+        if prepared_text_path:
+            self._log(f"  Acquiring visual + using prepared text overlay...")
+            visual_result = self._acquire_visual(scene, duration, width, height, video_type)
+            self._log(f"  Visual: {visual_result.path}")
+            self._log(f"  Text overlay (prepared): {prepared_text_path}")
+            return visual_result, prepared_text_path
 
         self._log(f"  [PARALLEL] Acquiring visual + text overlay...")
 
@@ -379,7 +423,7 @@ class SequenceComposer:
                 return None
             text_asset = self.text_renderer.render_overlay(
                 text=scene.text_overlay.content,
-                style_template=scene.text_overlay.style_template,
+                style_template=scene.text_overlay.style.value,
                 animation=scene.text_overlay.animation.value,
                 position=scene.text_overlay.position,
                 duration=duration,
@@ -414,6 +458,15 @@ class SequenceComposer:
     def _resolve_duration_and_audio(
         self, scene: Scene, effective_duration: float | None = None
     ) -> tuple[float, AudioAsset | None]:
+        if scene.prepared and scene.prepared.audio_path and scene.prepared.audio_duration:
+            audio_path = Path(scene.prepared.audio_path)
+            if audio_path.exists():
+                self._log(f"    Using prepared audio: {audio_path}")
+                return scene.prepared.audio_duration, AudioAsset(
+                    file_path=audio_path,
+                    duration=scene.prepared.audio_duration,
+                )
+
         sync_mode = scene.sync_mode
 
         if sync_mode == SyncMode.AUDIO:
@@ -467,6 +520,16 @@ class SequenceComposer:
         height: int,
         video_type: VideoType = VideoType.MIXED,
     ) -> VisualResult:
+        if scene.prepared and scene.prepared.visual_path:
+            visual_path = Path(scene.prepared.visual_path)
+            if visual_path.exists():
+                self._log(f"    Using prepared visual: {visual_path}")
+                return VisualResult(
+                    path=visual_path,
+                    clip_start=scene.prepared.visual_clip_start,
+                    clip_end=scene.prepared.visual_clip_end,
+                )
+
         if video_type == VideoType.UGC_CENTERED:
             return self._acquire_visual_ugc_centered(scene, duration, width, height)
 

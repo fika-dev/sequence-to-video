@@ -124,6 +124,8 @@ def _save_scenario_to_file(scenario, file_path: Path) -> None:
             if orig_scene.get("scene_id") == scene.scene_id:
                 if scene.selected_clip_id:
                     orig_scene["selected_clip_id"] = scene.selected_clip_id
+                if scene.prepared:
+                    orig_scene["prepared"] = scene.prepared.model_dump(exclude_none=True)
                 break
 
     with open(file_path, "w", encoding="utf-8") as f:
@@ -210,28 +212,15 @@ def rerender_single_scene(
 
     output_path, new_clip_id = composer.recompose_scene(scenario, scene_id)
 
-    if sequence_file_path and new_clip_id:
-        _update_scene_clip_in_file(sequence_file_path, scene_id, new_clip_id)
+    if sequence_file_path:
+        _save_scenario_to_file(scenario, sequence_file_path)
         if verbose:
-            print(f"Sequence updated: {scene_id} -> {new_clip_id}")
+            if new_clip_id:
+                print(f"Sequence updated: {scene_id} -> {new_clip_id}")
+            print(f"Prepared assets saved to: {sequence_file_path}")
 
     print(f"\nScene re-rendered: {output_path}")
     return output_path
-
-
-def _update_scene_clip_in_file(file_path: Path, scene_id: str, clip_id: str) -> None:
-    import json
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    for scene in data.get("scenes", []):
-        if scene.get("scene_id") == scene_id:
-            scene["selected_clip_id"] = clip_id
-            break
-
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 def reassemble_video(
@@ -569,6 +558,15 @@ def main():
     embed_parser.add_argument("--env", help="Path to .env file")
     embed_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
+    viewer_parser = subparsers.add_parser("viewer", help="Launch web viewer for sequence preview")
+    viewer_parser.add_argument("input", nargs="?", help="Path to sequence JSON file (optional)")
+    viewer_parser.add_argument(
+        "--host", default="127.0.0.1", help="Host to bind (default: 127.0.0.1)"
+    )
+    viewer_parser.add_argument(
+        "--port", type=int, default=8765, help="Port to bind (default: 8765)"
+    )
+
     args = parser.parse_args()
 
     if args.command == "render":
@@ -627,6 +625,10 @@ def main():
     elif args.command == "embed":
         config = load_config(args.env)
         regenerate_embeddings(config=config, verbose=args.verbose)
+    elif args.command == "viewer":
+        from viewer.server import run_viewer
+
+        run_viewer(sequence_path=args.input, host=args.host, port=args.port)
     else:
         parser.print_help()
         sys.exit(1)
