@@ -69,3 +69,7 @@ assets/raw_footage/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Agent documentation (auto-generated)
+AGENTS.md
+**/AGENTS.md

@@ -23,9 +23,14 @@ def main():
 
     config = load_config(args.env)
 
+    if not config.api.gcs_bucket:
+        print("Error: GCS_BUCKET environment variable is required for Vertex AI video generation")
+        sys.exit(1)
+
     video_gen = VideoGenerator(
         project=config.api.google_project_id,
         location="us-central1",
+        gcs_bucket=config.api.gcs_bucket,
     )
 
     print(f"Generating video with Veo 3.1...")

@@ -1,7 +1,9 @@
 import time
+import uuid
 from pathlib import Path
 
 from google import genai
+from google.cloud import storage
 from google.genai import types
 
 from domains.studio.models import VideoAsset
@@ -15,16 +17,19 @@ class VideoGenerator:
         output_dir: Path | None = None,
         project: str | None = None,
         location: str = "us-central1",
+        gcs_bucket: str | None = None,
         cache: AssetCache | None = None,
         metadata_manager: MetadataManager | None = None,
     ):
         self.project = project
         self.location = location
+        self.gcs_bucket = gcs_bucket
         self.client = genai.Client(
             vertexai=True,
             project=project,
             location=location,
         )
+        self.storage_client = storage.Client(project=project) if gcs_bucket else None
         self.output_dir = Path(output_dir) if output_dir else Path("assets/generated/videos")
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.cache = cache
@@ -62,14 +67,21 @@ class VideoGenerator:
                     prompt=prompt,
                 )
 
+        if not self.gcs_bucket:
+            raise RuntimeError("GCS bucket is required for Vertex AI video generation")
+
+        gcs_output_prefix = f"gs://{self.gcs_bucket}/generated_videos/{uuid.uuid4().hex}"
+
         if duration is not None:
             config = types.GenerateVideosConfig(
                 aspect_ratio=self._get_aspect_ratio(width, height),
+                output_gcs_uri=gcs_output_prefix,
                 duration_seconds=duration,
             )
         else:
             config = types.GenerateVideosConfig(
                 aspect_ratio=self._get_aspect_ratio(width, height),
+                output_gcs_uri=gcs_output_prefix,
             )
 
         operation = self.client.models.generate_videos(
@@ -88,18 +100,22 @@ class VideoGenerator:
         if hasattr(operation, "error") and operation.error:
             raise RuntimeError(f"Video generation failed: {operation.error}")
 
-        if not operation.response or not operation.response.generated_videos:
+        result = operation.result
+        if not result or not result.generated_videos:
             raise RuntimeError(f"No video generated for prompt: {prompt}")
 
-        video = operation.response.generated_videos[0]
+        generated_video = result.generated_videos[0]
+        if not generated_video.video or not generated_video.video.uri:
+            raise RuntimeError(f"Generated video has no URI for prompt: {prompt}")
+
+        gcs_uri = generated_video.video.uri
 
         if output_filename:
             output_path = self.output_dir / output_filename
         else:
             output_path = self.output_dir / f"vid_{hash(prompt) & 0xFFFFFFFF:08x}.mp4"
 
-        video_data = self.client.files.download(file=video.video)
-        video_data.save(str(output_path))
+        self._download_from_gcs(gcs_uri, output_path)
 
         actual_duration = float(duration) if duration else 8.0
 
@@ -126,6 +142,20 @@ class VideoGenerator:
             fps=24.0,
             prompt=prompt,
         )
+
+    def _download_from_gcs(self, gcs_uri: str, output_path: Path) -> None:
+        if not self.storage_client:
+            raise RuntimeError("Storage client not initialized")
+
+        if not gcs_uri.startswith("gs://"):
+            raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+
+        path_without_prefix = gcs_uri[5:]
+        bucket_name, blob_name = path_without_prefix.split("/", 1)
+
+        bucket = self.storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        blob.download_to_filename(str(output_path))
 
     def _get_aspect_ratio(self, width: int, height: int) -> str:
         ratio = width / height
