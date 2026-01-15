@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
-from domains.editing.models import ComposedScene, Timeline
+from domains.editing.models import ComposedScene, LottieOverlayAsset, Timeline
 
 
 @dataclass
@@ -20,6 +20,7 @@ from domains.library.selector import FootageSelector
 from domains.planning.models import Scene, Scenario, SyncMode, VideoType, VisualType
 from domains.studio.fallback_generator import FallbackGenerator
 from domains.studio.image_generator import ImageGenerator
+from domains.studio.lottie_renderer import LottieRenderer
 from domains.studio.models import AudioAsset, ImageAsset, VideoAsset
 from domains.studio.text_renderer import TextAnimationRenderer
 from domains.studio.tts_generator import TTSGenerator
@@ -35,6 +36,7 @@ class SequenceComposer:
         image_generator: ImageGenerator,
         video_generator: VideoGenerator,
         text_renderer: TextAnimationRenderer,
+        lottie_renderer: LottieRenderer | None = None,
         asset_repository: AssetRepository | None = None,
         footage_selector: FootageSelector | None = None,
         renderer: FFmpegRenderer | None = None,
@@ -47,6 +49,7 @@ class SequenceComposer:
         self.image_gen = image_generator
         self.video_gen = video_generator
         self.text_renderer = text_renderer
+        self.lottie_renderer = lottie_renderer or LottieRenderer()
         self.asset_repo = asset_repository
         self.footage_selector = footage_selector
         self.renderer = renderer or FFmpegRenderer()
@@ -272,6 +275,10 @@ class SequenceComposer:
             scene, duration, width, height, video_type
         )
 
+        lottie_overlays = self._resolve_lottie_overlays(scene)
+        if lottie_overlays:
+            self._log(f"  Lottie overlays: {len(lottie_overlays)}")
+
         effects = {
             "camera_movement": scene.fx_beat.camera_movement.value,
             "transition_next": scene.fx_beat.transition_next.value,
@@ -284,11 +291,32 @@ class SequenceComposer:
             video_path=visual_result.path,
             audio_path=audio_asset.file_path if audio_asset else None,
             text_overlay_path=text_overlay_path,
+            lottie_overlays=lottie_overlays,
             duration=duration,
             effects=effects,
             clip_start_time=visual_result.clip_start,
             clip_end_time=visual_result.clip_end,
         )
+
+    def _resolve_lottie_overlays(self, scene: Scene) -> list[LottieOverlayAsset]:
+        if not scene.lottie_overlays:
+            return []
+
+        result = []
+        for overlay in scene.lottie_overlays:
+            try:
+                asset = self.lottie_renderer.get_overlay(overlay.lottie_name)
+                result.append(
+                    LottieOverlayAsset(
+                        file_path=asset.file_path,
+                        start_time=overlay.start_time,
+                        position=overlay.position,
+                        scale=overlay.scale,
+                    )
+                )
+            except FileNotFoundError as e:
+                self._log(f"  Warning: {e}")
+        return result
 
     def _acquire_visual_and_text_parallel(
         self,

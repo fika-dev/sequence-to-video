@@ -79,22 +79,43 @@ class FFmpegRenderer:
             inputs.extend(["-f", "lavfi", "-i", f"anullsrc=r=44100:cl=stereo:d={scene.duration}"])
             audio_label = f"[{audio_input_idx}:a]"
 
+        next_input_idx = audio_input_idx + 1
+
         if scene.text_overlay_path:
-            overlay_idx = audio_input_idx + 1
+            overlay_idx = next_input_idx
+            next_input_idx += 1
             inputs.extend(["-i", str(scene.text_overlay_path)])
             is_prores = scene.text_overlay_path.suffix.lower() == ".mov"
             if is_prores:
                 filter_complex.append(
-                    f"{current_video}[{overlay_idx}:v]overlay=0:0:format=auto[vout]"
+                    f"{current_video}[{overlay_idx}:v]overlay=0:0:format=auto[vtxt]"
                 )
             else:
                 filter_complex.append(
                     f"[{overlay_idx}:v]chromakey=0x00FF00:0.1:0.2[txtkey];"
-                    f"{current_video}[txtkey]overlay=0:0[vout]"
+                    f"{current_video}[txtkey]overlay=0:0[vtxt]"
                 )
-            final_video = "[vout]"
-        else:
-            final_video = current_video
+            current_video = "[vtxt]"
+
+        for i, lottie_overlay in enumerate(scene.lottie_overlays):
+            overlay_idx = next_input_idx
+            next_input_idx += 1
+            inputs.extend(["-i", str(lottie_overlay.file_path)])
+
+            overlay_x, overlay_y = self._get_overlay_position(
+                lottie_overlay.position, lottie_overlay.scale, width, height
+            )
+            scale_filter = f"scale=iw*{lottie_overlay.scale}:ih*{lottie_overlay.scale}"
+            delay_frames = int(lottie_overlay.start_time * fps)
+            out_label = f"[vlottie{i}]"
+
+            filter_complex.append(
+                f"[{overlay_idx}:v]{scale_filter},setpts=PTS+{lottie_overlay.start_time}/TB[lottie{i}scaled];"
+                f"{current_video}[lottie{i}scaled]overlay={overlay_x}:{overlay_y}:enable='gte(t,{lottie_overlay.start_time})':shortest=0{out_label}"
+            )
+            current_video = out_label
+
+        final_video = current_video
 
         filter_str = ";".join(filter_complex) if filter_complex else None
 
@@ -289,6 +310,20 @@ class FFmpegRenderer:
 
         concat_list.unlink()
         return output_path
+
+    def _get_overlay_position(
+        self, position: str, scale: float, width: int, height: int
+    ) -> tuple[str, str]:
+        positions = {
+            "center": ("(W-w)/2", "(H-h)/2"),
+            "top": ("(W-w)/2", "100"),
+            "bottom": ("(W-w)/2", "H-h-200"),
+            "top-left": ("100", "100"),
+            "top-right": ("W-w-100", "100"),
+            "bottom-left": ("100", "H-h-200"),
+            "bottom-right": ("W-w-100", "H-h-200"),
+        }
+        return positions.get(position, positions["center"])
 
     def _save_composition_metadata(
         self,

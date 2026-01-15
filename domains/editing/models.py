@@ -11,11 +11,19 @@ class TimelineAsset(BaseModel):
     layer: int = 0
 
 
+class LottieOverlayAsset(BaseModel):
+    file_path: Path
+    start_time: float = 0.0
+    position: str = "center"
+    scale: float = 0.5
+
+
 class ComposedScene(BaseModel):
     scene_id: str
     video_path: Path | None = None
     audio_path: Path | None = None
     text_overlay_path: Path | None = None
+    lottie_overlays: list[LottieOverlayAsset] = Field(default_factory=list)
     duration: float
     effects: dict = Field(default_factory=dict)
     clip_start_time: float | None = None

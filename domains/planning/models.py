@@ -71,6 +71,15 @@ class TextOverlay(BaseModel):
     position: Literal["top", "center", "bottom"] = "bottom"
 
 
+class LottieOverlay(BaseModel):
+    lottie_name: str
+    start_time: float = 0.0
+    position: Literal[
+        "top", "center", "bottom", "top-left", "top-right", "bottom-left", "bottom-right"
+    ] = "center"
+    scale: float = Field(default=0.5, ge=0.1, le=1.0)
+
+
 class FxBeat(BaseModel):
     camera_movement: CameraMovement = CameraMovement.NONE
     transition_next: Transition = Transition.CUT
@@ -84,6 +93,7 @@ class Scene(BaseModel):
     audio_script: AudioScript
     visual_layer: VisualLayer
     text_overlay: TextOverlay | None = None
+    lottie_overlays: list[LottieOverlay] = Field(default_factory=list)
     fx_beat: FxBeat = Field(default_factory=FxBeat)
     duration: float | None = None
     sync_mode: SyncMode = SyncMode.AUDIO

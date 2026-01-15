@@ -7,7 +7,7 @@ DDD-based video generation pipeline from sequence planning data.
 - **Sequencing Domain**: Generate sequence JSON from scripts using Gemini
 - **Planning Domain**: Parse sequence JSON into structured scenarios
 - **Library Domain**: Index and search existing video footage using Gemini
-- **Studio Domain**: Generate TTS (Chirp v3), images (Gemini 3 Pro), videos (Veo 3.1), text animations
+- **Studio Domain**: Generate TTS (Chirp v3), images (Gemini 3 Pro), videos (Veo 3.1), text animations, Lottie overlays
 - **Editing Domain**: Compose final video with FFmpeg, apply effects and transitions
 
 ## Installation
@@ -206,6 +206,37 @@ uv run python scripts/test_sequence.py examples/script.txt -v
 uv run python scripts/test_sequence.py "첫 번째 장면: 제품 클로즈업. 두 번째 장면: 사용 후기" -v
 ```
 
+### Lottie Overlay
+
+Lottie animations (checkmark, error, warning, etc.) are pre-rendered to ProRes 4444 MOV files with alpha channel for efficient runtime use.
+
+```bash
+# List available presets
+uv run python scripts/test_lottie.py --list-presets
+
+# Load a preset overlay
+uv run python scripts/test_lottie.py success
+```
+
+#### Adding New Lottie Animations
+
+1. Download Lottie JSON files from [LottieFiles](https://lottiefiles.com) or [IconScout](https://iconscout.com/lottie-animations)
+2. Place JSON files in `assets/stock/lottie/`
+3. Convert to MOV:
+
+```bash
+# Convert all Lottie JSON files to MOV
+uv run python scripts/convert_lottie_to_mov.py -v
+
+# Convert with custom size
+uv run python scripts/convert_lottie_to_mov.py -W 1080 -H 1080 -v
+
+# Force re-convert existing files
+uv run python scripts/convert_lottie_to_mov.py --force -v
+```
+
+Output MOV files are saved to `assets/stock/lottie_mov/` and can be used as overlays in video composition.
+
 ## Project Structure
 
 ```
@@ -217,7 +248,8 @@ domains/
 │   ├── tts_generator.py       # Google Cloud TTS (Chirp v3)
 │   ├── image_generator.py     # Gemini 3 Pro Image
 │   ├── video_generator.py     # Veo 3.1 (us-central1 only)
-│   ├── text_renderer.py       # Playwright + FFmpeg
+│   ├── text_renderer.py       # Playwright + FFmpeg text overlays
+│   ├── lottie_renderer.py     # Pre-rendered Lottie MOV loader
 │   └── fallback_generator.py  # Black screen fallback
 └── editing/     # FFmpeg composition
     ├── composer.py   # Scene orchestration
@@ -230,12 +262,18 @@ infrastructure/
 └── metadata.py  # Generation metadata tracking
 
 scripts/
-├── test_tts.py           # TTS testing
-├── test_image.py         # Image generation testing
-├── test_video.py         # Video generation testing
-├── test_text_overlay.py  # Text overlay testing
-├── test_sequence.py      # Sequence generation testing
-└── convert_mov_to_mp4.py # Format conversion
+├── test_tts.py              # TTS testing
+├── test_image.py            # Image generation testing
+├── test_video.py            # Video generation testing
+├── test_text_overlay.py     # Text overlay testing
+├── test_lottie.py           # Lottie overlay testing
+├── test_sequence.py         # Sequence generation testing
+├── convert_lottie_to_mov.py # Lottie JSON → MOV conversion
+└── convert_mov_to_mp4.py    # Format conversion
+
+assets/stock/
+├── lottie/       # Source Lottie JSON files
+└── lottie_mov/   # Pre-rendered MOV files (ProRes 4444 with alpha)
 ```
 
 ## Model Configuration
