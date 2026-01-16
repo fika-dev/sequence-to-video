@@ -124,6 +124,33 @@ uv run python main.py rerender-scene sequence.json s03 -v
 uv run python main.py reassemble sequence.json -o output_v2.mp4 -v
 ```
 
+### Web Viewer
+
+Launch an interactive web UI to preview and edit sequence JSON files. The viewer allows real-time editing of scenes, regeneration of individual assets, and scene re-rendering.
+
+```bash
+# Launch viewer with a sequence file pre-loaded
+uv run python main.py viewer examples/sample_sequence.json
+
+# Launch empty viewer (load file via UI)
+uv run python main.py viewer
+
+# Custom host/port
+uv run python main.py viewer sequence.json --host 0.0.0.0 --port 8080
+```
+
+Open `http://127.0.0.1:8765` in your browser. The viewer provides:
+
+- **Scene List**: Navigate between scenes, see asset status badges
+- **Scene Editor**: Edit audio script, visual layer, text overlay, timing, effects
+- **Text Overlay**: Toggle on/off, edit content/style/animation, customize font and background colors
+- **Lottie Overlays**: Add/remove/edit Lottie animations with position, scale, and timing
+- **Sound Effects**: Add/remove/edit SFX with volume, timing, and fade controls
+- **Asset Preview**: View generated assets, regenerate individual components
+- **Re-render**: Re-render individual scenes or the entire video
+
+Changes are auto-saved to the sequence JSON file when you click "Save Changes".
+
 ### Generate Embeddings
 
 Embeddings enable semantic search for footage selection. They are automatically generated during indexing, but you can regenerate them separately:
@@ -331,6 +358,9 @@ infrastructure/
 ├── config.py    # Configuration management
 ├── cache.py     # Asset caching
 └── metadata.py  # Generation metadata tracking
+
+viewer/
+└── server.py    # FastAPI web viewer for sequence editing
 
 scripts/
 ├── test_tts.py              # TTS testing

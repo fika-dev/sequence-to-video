@@ -15,6 +15,7 @@ from domains.planning.models import (
     TextAnimation,
     TextStyle,
     Transition,
+    VideoFitMode,
     VisualType,
 )
 from domains.planning.parser import ScenarioParser
@@ -43,6 +44,23 @@ class RegenerateRequest(BaseModel):
     asset_type: Literal["audio", "visual", "text_overlay", "scene"]
 
 
+class LottieOverlayRequest(BaseModel):
+    lottie_name: str
+    start_time: float = 0.0
+    position: Literal[
+        "top", "center", "bottom", "top-left", "top-right", "bottom-left", "bottom-right"
+    ] = "center"
+    scale: float = 0.5
+
+
+class SoundEffectRequest(BaseModel):
+    preset_name: str
+    volume: float = 0.5
+    start_time: float = 0.0
+    fade_in: float = 0.0
+    fade_out: float = 0.0
+
+
 class SceneUpdateRequest(BaseModel):
     audio_script_text: str | None = None
     audio_script_speed: float | None = None
@@ -50,13 +68,37 @@ class SceneUpdateRequest(BaseModel):
     visual_prompt: str | None = None
     visual_fallback_prompt: str | None = None
     visual_gen_duration: int | None = None
+    # Text overlay fields - use "REMOVE" sentinel to delete overlay
+    text_overlay_enabled: bool | None = None
     text_overlay_content: str | None = None
     text_overlay_style: str | None = None
     text_overlay_animation: str | None = None
+    text_overlay_position: Literal["top", "center", "bottom"] | None = None
+    text_overlay_font_color: str | None = None
+    text_overlay_background_color: str | None = None
+    # Lottie and SFX - replace entire arrays when provided
+    lottie_overlays: list[LottieOverlayRequest] | None = None
+    sound_effects: list[SoundEffectRequest] | None = None
     duration: float | None = None
     sync_mode: str | None = None
+    video_fit_mode: str | None = None
     camera_movement: str | None = None
     transition_next: str | None = None
+
+
+class LottieOverlayInfo(BaseModel):
+    lottie_name: str
+    start_time: float
+    position: str
+    scale: float
+
+
+class SoundEffectInfo(BaseModel):
+    preset_name: str
+    volume: float
+    start_time: float
+    fade_in: float
+    fade_out: float
 
 
 class SceneAssetInfo(BaseModel):
@@ -73,10 +115,14 @@ class SceneAssetInfo(BaseModel):
     text_overlay_content: str | None
     text_overlay_style: str | None
     text_overlay_animation: str | None
-    lottie_count: int
-    sfx_count: int
+    text_overlay_position: str | None
+    text_overlay_font_color: str | None
+    text_overlay_background_color: str | None
+    lottie_overlays: list[LottieOverlayInfo]
+    sound_effects: list[SoundEffectInfo]
     duration: float | None
     sync_mode: str
+    video_fit_mode: str
     camera_movement: str
     transition_next: str
     prepared: PreparedAssets | None
@@ -151,14 +197,54 @@ async def save_to_file():
 
 @app.get("/api/enums")
 async def get_enum_options():
+    from domains.studio.lottie_renderer import LottieRenderer
+    from domains.studio.sfx_provider import SFXProvider
+
     return {
         "visual_types": [e.value for e in VisualType],
         "camera_movements": [e.value for e in CameraMovement],
         "transitions": [e.value for e in Transition],
         "sync_modes": [e.value for e in SyncMode],
+        "video_fit_modes": [e.value for e in VideoFitMode],
         "text_animations": [e.value for e in TextAnimation],
         "text_styles": [e.value for e in TextStyle],
+        "text_positions": ["top", "center", "bottom"],
+        "lottie_presets": LottieRenderer.list_presets(),
+        "lottie_positions": [
+            "top",
+            "center",
+            "bottom",
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right",
+        ],
+        "sfx_presets": SFXProvider.list_presets(),
     }
+
+
+@app.get("/api/lottie/{preset_name}")
+async def get_lottie_asset(preset_name: str):
+    from domains.studio.lottie_renderer import LottieRenderer
+
+    renderer = LottieRenderer()
+    try:
+        path = renderer.get_overlay_path(preset_name)
+        return {"preset_name": preset_name, "path": str(path)}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Lottie preset not found: {preset_name}")
+
+
+@app.get("/api/sfx/{preset_name}")
+async def get_sfx_asset(preset_name: str):
+    from domains.studio.sfx_provider import SFXProvider
+
+    provider = SFXProvider()
+    try:
+        path = provider.get_sfx_path(preset_name)
+        return {"preset_name": preset_name, "path": str(path)}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"SFX preset not found: {preset_name}")
 
 
 def _build_scene_info(scene, rendered_path: Path | None) -> SceneAssetInfo:
@@ -176,10 +262,33 @@ def _build_scene_info(scene, rendered_path: Path | None) -> SceneAssetInfo:
         text_overlay_content=scene.text_overlay.content if scene.text_overlay else None,
         text_overlay_style=scene.text_overlay.style.value if scene.text_overlay else None,
         text_overlay_animation=scene.text_overlay.animation.value if scene.text_overlay else None,
-        lottie_count=len(scene.lottie_overlays),
-        sfx_count=len(scene.sound_effects),
+        text_overlay_position=scene.text_overlay.position if scene.text_overlay else None,
+        text_overlay_font_color=scene.text_overlay.font_color if scene.text_overlay else None,
+        text_overlay_background_color=scene.text_overlay.background_color
+        if scene.text_overlay
+        else None,
+        lottie_overlays=[
+            LottieOverlayInfo(
+                lottie_name=lo.lottie_name,
+                start_time=lo.start_time,
+                position=lo.position,
+                scale=lo.scale,
+            )
+            for lo in scene.lottie_overlays
+        ],
+        sound_effects=[
+            SoundEffectInfo(
+                preset_name=sfx.preset_name,
+                volume=sfx.volume,
+                start_time=sfx.start_time,
+                fade_in=sfx.fade_in,
+                fade_out=sfx.fade_out,
+            )
+            for sfx in scene.sound_effects
+        ],
         duration=scene.duration,
         sync_mode=scene.sync_mode.value,
+        video_fit_mode=scene.video_fit_mode.value,
         camera_movement=scene.fx_beat.camera_movement.value,
         transition_next=scene.fx_beat.transition_next.value,
         prepared=scene.prepared,
@@ -210,6 +319,8 @@ async def get_scene(scene_id: str) -> SceneAssetInfo:
 
 @app.patch("/api/scenes/{scene_id}")
 async def update_scene(scene_id: str, request: SceneUpdateRequest):
+    from domains.planning.models import LottieOverlay, SoundEffect, TextOverlay
+
     scenario = get_scenario()
     scene = next((s for s in scenario.scenes if s.scene_id == scene_id), None)
     if not scene:
@@ -227,16 +338,62 @@ async def update_scene(scene_id: str, request: SceneUpdateRequest):
         scene.visual_layer.fallback_gen_prompt = request.visual_fallback_prompt
     if request.visual_gen_duration is not None:
         scene.visual_layer.gen_duration = request.visual_gen_duration
-    if request.text_overlay_content is not None and scene.text_overlay:
-        scene.text_overlay.content = request.text_overlay_content
-    if request.text_overlay_style is not None and scene.text_overlay:
-        scene.text_overlay.style = TextStyle(request.text_overlay_style)
-    if request.text_overlay_animation is not None and scene.text_overlay:
-        scene.text_overlay.animation = TextAnimation(request.text_overlay_animation)
+
+    if request.text_overlay_enabled is not None:
+        if request.text_overlay_enabled and scene.text_overlay is None:
+            scene.text_overlay = TextOverlay(content="")
+        elif not request.text_overlay_enabled:
+            scene.text_overlay = None
+
+    if scene.text_overlay:
+        if request.text_overlay_content is not None:
+            scene.text_overlay.content = request.text_overlay_content
+        if request.text_overlay_style is not None:
+            scene.text_overlay.style = TextStyle(request.text_overlay_style)
+        if request.text_overlay_animation is not None:
+            scene.text_overlay.animation = TextAnimation(request.text_overlay_animation)
+        if request.text_overlay_position is not None:
+            scene.text_overlay.position = request.text_overlay_position
+        if request.text_overlay_font_color is not None:
+            scene.text_overlay.font_color = (
+                request.text_overlay_font_color if request.text_overlay_font_color else None
+            )
+        if request.text_overlay_background_color is not None:
+            scene.text_overlay.background_color = (
+                request.text_overlay_background_color
+                if request.text_overlay_background_color
+                else None
+            )
+
+    if request.lottie_overlays is not None:
+        scene.lottie_overlays = [
+            LottieOverlay(
+                lottie_name=lo.lottie_name,
+                start_time=lo.start_time,
+                position=lo.position,
+                scale=lo.scale,
+            )
+            for lo in request.lottie_overlays
+        ]
+
+    if request.sound_effects is not None:
+        scene.sound_effects = [
+            SoundEffect(
+                preset_name=sfx.preset_name,
+                volume=sfx.volume,
+                start_time=sfx.start_time,
+                fade_in=sfx.fade_in,
+                fade_out=sfx.fade_out,
+            )
+            for sfx in request.sound_effects
+        ]
+
     if request.duration is not None:
         scene.duration = request.duration
     if request.sync_mode is not None:
         scene.sync_mode = SyncMode(request.sync_mode)
+    if request.video_fit_mode is not None:
+        scene.video_fit_mode = VideoFitMode(request.video_fit_mode)
     if request.camera_movement is not None:
         scene.fx_beat.camera_movement = CameraMovement(request.camera_movement)
     if request.transition_next is not None:
@@ -608,8 +765,37 @@ def _save_to_file():
                     orig_scene["text_overlay"]["style"] = scene.text_overlay.style.value
                     orig_scene["text_overlay"]["animation"] = scene.text_overlay.animation.value
                     orig_scene["text_overlay"]["position"] = scene.text_overlay.position
+                    orig_scene["text_overlay"]["font_color"] = scene.text_overlay.font_color
+                    orig_scene["text_overlay"]["background_color"] = (
+                        scene.text_overlay.background_color
+                    )
+                else:
+                    orig_scene.pop("text_overlay", None)
+
+                orig_scene["lottie_overlays"] = [
+                    {
+                        "lottie_name": lo.lottie_name,
+                        "start_time": lo.start_time,
+                        "position": lo.position,
+                        "scale": lo.scale,
+                    }
+                    for lo in scene.lottie_overlays
+                ]
+
+                orig_scene["sound_effects"] = [
+                    {
+                        "preset_name": sfx.preset_name,
+                        "volume": sfx.volume,
+                        "start_time": sfx.start_time,
+                        "fade_in": sfx.fade_in,
+                        "fade_out": sfx.fade_out,
+                    }
+                    for sfx in scene.sound_effects
+                ]
+
                 orig_scene["duration"] = scene.duration
                 orig_scene["sync_mode"] = scene.sync_mode.value
+                orig_scene["video_fit_mode"] = scene.video_fit_mode.value
                 if "fx_beat" not in orig_scene:
                     orig_scene["fx_beat"] = {}
                 orig_scene["fx_beat"]["camera_movement"] = scene.fx_beat.camera_movement.value
@@ -704,6 +890,49 @@ def get_viewer_html() -> str:
         .tag { display: inline-block; font-size: 10px; padding: 3px 8px; background: #0f3460;
                color: #4da8da; border-radius: 10px; margin: 2px 4px 2px 0; }
         .meta-info { font-size: 11px; color: #666; }
+
+        /* Toggle Switch */
+        .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .toggle-label { font-size: 11px; color: #888; }
+        .toggle { position: relative; width: 40px; height: 20px; background: #0f3460; border-radius: 10px; cursor: pointer; }
+        .toggle.on { background: #4da8da; }
+        .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #eee; border-radius: 50%; transition: 0.2s; }
+        .toggle.on::after { left: 22px; }
+
+        /* Color Input */
+        .color-row { display: flex; align-items: center; gap: 8px; }
+        .color-input { width: 36px; height: 28px; border: none; border-radius: 4px; cursor: pointer; background: transparent; padding: 0; }
+        .color-text { flex: 1; }
+
+        /* Section Header with Actions */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .section-header h4 { margin-bottom: 0; }
+        .section-actions { display: flex; gap: 6px; }
+        .btn-small { padding: 4px 8px; font-size: 10px; background: #0f3460; border: none; border-radius: 4px; color: #4da8da; cursor: pointer; }
+        .btn-small:hover { background: #1a4a7a; }
+        .btn-small.danger { color: #ff6b6b; }
+        .btn-small.danger:hover { background: #3d0000; }
+
+        /* Item List */
+        .item-list { display: flex; flex-direction: column; gap: 8px; }
+        .item-card { background: #1a1a2e; border-radius: 6px; padding: 10px; border: 1px solid #0f3460; }
+        .item-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .item-card-title { font-size: 11px; font-weight: 600; color: #e94560; }
+        .item-card-remove { background: none; border: none; color: #666; cursor: pointer; font-size: 14px; }
+        .item-card-remove:hover { color: #ff6b6b; }
+        .item-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .item-card-grid .form-row { margin-bottom: 0; }
+        .empty-list { text-align: center; color: #444; font-size: 11px; padding: 16px; }
+
+        /* Preview List (Right Panel) */
+        .preview-list { display: flex; flex-direction: column; gap: 8px; }
+        .preview-item { background: #0d1321; border-radius: 6px; padding: 8px; }
+        .preview-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .preview-item-name { font-size: 11px; font-weight: 600; color: #4da8da; }
+        .preview-item-meta { font-size: 9px; color: #555; }
+        .preview-item-content { min-height: 32px; }
+        .preview-play-btn { padding: 6px 12px; background: #0f3460; border: none; border-radius: 4px; color: #4da8da; cursor: pointer; font-size: 10px; }
+        .preview-play-btn:hover { background: #1a4a7a; }
 
         /* Right Panel - Asset Preview */
         .panel-right { width: 380px; background: #16213e; }
@@ -805,7 +1034,7 @@ def get_viewer_html() -> str:
         let scenes = [];
         let currentScene = null;
         let isDirty = false;
-        let enumOpts = { visual_types: [], camera_movements: [], transitions: [], sync_modes: [], text_animations: [], text_styles: [] };
+        let enumOpts = { visual_types: [], camera_movements: [], transitions: [], sync_modes: [], video_fit_modes: [], text_animations: [], text_styles: [], text_positions: [], lottie_presets: [], lottie_positions: [], sfx_presets: [] };
 
         async function loadSequence() {
             const path = document.getElementById('sequencePath').value.trim();
@@ -899,6 +1128,7 @@ def get_viewer_html() -> str:
 
         function renderEditor(s) {
             const c = document.getElementById('editorContent');
+            const hasTextOverlay = s.text_overlay_content !== null;
             c.innerHTML = `
                 <div class="editor-section">
                     <h4>Audio Script</h4>
@@ -951,28 +1181,79 @@ def get_viewer_html() -> str:
                     </div>
                 </div>
 
-                ${s.text_overlay_content !== null ? `
                 <div class="editor-section">
-                    <h4>Text Overlay</h4>
-                    <div class="form-row">
-                        <label class="form-label">Content</label>
-                        <input type="text" class="form-input" id="editTextOverlay" value="${esc(s.text_overlay_content || '')}">
-                    </div>
-                    <div class="form-row-inline">
-                        <div class="form-row">
-                            <label class="form-label">Style</label>
-                            <select class="form-select" id="editTextStyle">
-                                ${enumOpts.text_styles.map(v => `<option value="${v}" ${v === s.text_overlay_style ? 'selected' : ''}>${v}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label class="form-label">Animation</label>
-                            <select class="form-select" id="editTextAnimation">
-                                ${enumOpts.text_animations.map(v => `<option value="${v}" ${v === s.text_overlay_animation ? 'selected' : ''}>${v}</option>`).join('')}
-                            </select>
+                    <div class="section-header">
+                        <h4>Text Overlay</h4>
+                        <div class="toggle-row">
+                            <span class="toggle-label">Enabled</span>
+                            <div class="toggle ${hasTextOverlay ? 'on' : ''}" id="textOverlayToggle" onclick="toggleTextOverlay()"></div>
                         </div>
                     </div>
-                </div>` : ''}
+                    <div id="textOverlayFields" style="${hasTextOverlay ? '' : 'display:none;'}">
+                        <div class="form-row">
+                            <label class="form-label">Content</label>
+                            <input type="text" class="form-input" id="editTextOverlay" value="${esc(s.text_overlay_content || '')}">
+                        </div>
+                        <div class="form-row-inline">
+                            <div class="form-row">
+                                <label class="form-label">Style</label>
+                                <select class="form-select" id="editTextStyle">
+                                    ${enumOpts.text_styles.map(v => `<option value="${v}" ${v === s.text_overlay_style ? 'selected' : ''}>${v}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Animation</label>
+                                <select class="form-select" id="editTextAnimation">
+                                    ${enumOpts.text_animations.map(v => `<option value="${v}" ${v === s.text_overlay_animation ? 'selected' : ''}>${v}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row-inline">
+                            <div class="form-row">
+                                <label class="form-label">Position</label>
+                                <select class="form-select" id="editTextPosition">
+                                    ${enumOpts.text_positions.map(v => `<option value="${v}" ${v === s.text_overlay_position ? 'selected' : ''}>${v}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row-inline">
+                            <div class="form-row">
+                                <label class="form-label">Font Color</label>
+                                <div class="color-row">
+                                    <input type="color" class="color-input" id="editFontColor" value="${s.text_overlay_font_color || '#ffffff'}">
+                                    <input type="text" class="form-input color-text" id="editFontColorText" value="${s.text_overlay_font_color || ''}" placeholder="Default">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Background Color</label>
+                                <div class="color-row">
+                                    <input type="color" class="color-input" id="editBgColor" value="${s.text_overlay_background_color || '#000000'}">
+                                    <input type="text" class="form-input color-text" id="editBgColorText" value="${s.text_overlay_background_color || ''}" placeholder="Default">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <div class="section-header">
+                        <h4>Lottie Overlays</h4>
+                        <button class="btn-small" onclick="addLottie()">+ Add</button>
+                    </div>
+                    <div class="item-list" id="lottieList">
+                        ${s.lottie_overlays.length ? s.lottie_overlays.map((lo, i) => renderLottieItem(lo, i)).join('') : '<div class="empty-list">No Lottie overlays</div>'}
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <div class="section-header">
+                        <h4>Sound Effects</h4>
+                        <button class="btn-small" onclick="addSfx()">+ Add</button>
+                    </div>
+                    <div class="item-list" id="sfxList">
+                        ${s.sound_effects.length ? s.sound_effects.map((sfx, i) => renderSfxItem(sfx, i)).join('') : '<div class="empty-list">No sound effects</div>'}
+                    </div>
+                </div>
 
                 <div class="editor-section">
                     <h4>Timing & Effects</h4>
@@ -985,6 +1266,14 @@ def get_viewer_html() -> str:
                             <label class="form-label">Sync Mode</label>
                             <select class="form-select" id="editSyncMode">
                                 ${enumOpts.sync_modes.map(v => `<option value="${v}" ${v === s.sync_mode ? 'selected' : ''}>${v}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <div class="form-row">
+                            <label class="form-label">Video Fit Mode</label>
+                            <select class="form-select" id="editVideoFitMode">
+                                ${enumOpts.video_fit_modes.map(v => `<option value="${v}" ${v === s.video_fit_mode ? 'selected' : ''}>${v}</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -1006,19 +1295,247 @@ def get_viewer_html() -> str:
 
                 <button class="save-btn" onclick="saveScene()">Save Changes</button>
             `;
+            setupColorSync();
+        }
+
+        function renderLottieItem(lo, index) {
+            return `
+                <div class="item-card" data-lottie-index="${index}">
+                    <div class="item-card-header">
+                        <span class="item-card-title">${lo.lottie_name}</span>
+                        <button class="item-card-remove" onclick="removeLottie(${index})">x</button>
+                    </div>
+                    <div class="item-card-grid">
+                        <div class="form-row">
+                            <label class="form-label">Preset</label>
+                            <select class="form-select lottie-field" data-index="${index}" data-field="lottie_name">
+                                ${enumOpts.lottie_presets.map(p => `<option value="${p}" ${p === lo.lottie_name ? 'selected' : ''}>${p}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Position</label>
+                            <select class="form-select lottie-field" data-index="${index}" data-field="position">
+                                ${enumOpts.lottie_positions.map(p => `<option value="${p}" ${p === lo.position ? 'selected' : ''}>${p}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Start Time</label>
+                            <input type="number" class="form-input lottie-field" data-index="${index}" data-field="start_time" value="${lo.start_time}" step="0.1" min="0">
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Scale</label>
+                            <input type="number" class="form-input lottie-field" data-index="${index}" data-field="scale" value="${lo.scale}" step="0.1" min="0.1" max="1">
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function renderSfxItem(sfx, index) {
+            return `
+                <div class="item-card" data-sfx-index="${index}">
+                    <div class="item-card-header">
+                        <span class="item-card-title">${sfx.preset_name}</span>
+                        <button class="item-card-remove" onclick="removeSfx(${index})">x</button>
+                    </div>
+                    <div class="item-card-grid">
+                        <div class="form-row">
+                            <label class="form-label">Preset</label>
+                            <select class="form-select sfx-field" data-index="${index}" data-field="preset_name">
+                                ${enumOpts.sfx_presets.map(p => `<option value="${p}" ${p === sfx.preset_name ? 'selected' : ''}>${p}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Volume</label>
+                            <input type="number" class="form-input sfx-field" data-index="${index}" data-field="volume" value="${sfx.volume}" step="0.1" min="0" max="1">
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Start Time</label>
+                            <input type="number" class="form-input sfx-field" data-index="${index}" data-field="start_time" value="${sfx.start_time}" step="0.1" min="0">
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Fade In</label>
+                            <input type="number" class="form-input sfx-field" data-index="${index}" data-field="fade_in" value="${sfx.fade_in}" step="0.1" min="0">
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Fade Out</label>
+                            <input type="number" class="form-input sfx-field" data-index="${index}" data-field="fade_out" value="${sfx.fade_out}" step="0.1" min="0">
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function setupColorSync() {
+            const fontColor = document.getElementById('editFontColor');
+            const fontColorText = document.getElementById('editFontColorText');
+            const bgColor = document.getElementById('editBgColor');
+            const bgColorText = document.getElementById('editBgColorText');
+            if (fontColor && fontColorText) {
+                fontColor.addEventListener('input', () => { fontColorText.value = fontColor.value; });
+                fontColorText.addEventListener('input', () => { if (fontColorText.value) fontColor.value = fontColorText.value; });
+            }
+            if (bgColor && bgColorText) {
+                bgColor.addEventListener('input', () => { bgColorText.value = bgColor.value; });
+                bgColorText.addEventListener('input', () => { if (bgColorText.value) bgColor.value = bgColorText.value; });
+            }
+        }
+
+        let textOverlayEnabled = null;
+        function toggleTextOverlay() {
+            const toggle = document.getElementById('textOverlayToggle');
+            const fields = document.getElementById('textOverlayFields');
+            const isOn = toggle.classList.contains('on');
+            if (isOn) {
+                toggle.classList.remove('on');
+                fields.style.display = 'none';
+                textOverlayEnabled = false;
+            } else {
+                toggle.classList.add('on');
+                fields.style.display = '';
+                textOverlayEnabled = true;
+            }
+        }
+
+        function getLottieData() {
+            const items = document.querySelectorAll('[data-lottie-index]');
+            const data = [];
+            items.forEach(item => {
+                const index = parseInt(item.dataset.lottieIndex);
+                const fields = item.querySelectorAll('.lottie-field');
+                const lo = {};
+                fields.forEach(f => {
+                    const val = f.type === 'number' ? parseFloat(f.value) : f.value;
+                    lo[f.dataset.field] = val;
+                });
+                data[index] = lo;
+            });
+            return data.filter(Boolean);
+        }
+
+        function getSfxData() {
+            const items = document.querySelectorAll('[data-sfx-index]');
+            const data = [];
+            items.forEach(item => {
+                const index = parseInt(item.dataset.sfxIndex);
+                const fields = item.querySelectorAll('.sfx-field');
+                const sfx = {};
+                fields.forEach(f => {
+                    const val = f.type === 'number' ? parseFloat(f.value) : f.value;
+                    sfx[f.dataset.field] = val;
+                });
+                data[index] = sfx;
+            });
+            return data.filter(Boolean);
+        }
+
+        function addLottie() {
+            if (!currentScene) return;
+            currentScene.lottie_overlays.push({ lottie_name: enumOpts.lottie_presets[0] || 'success', start_time: 0, position: 'center', scale: 0.5 });
+            renderEditor(currentScene);
+        }
+
+        function removeLottie(index) {
+            if (!currentScene) return;
+            currentScene.lottie_overlays.splice(index, 1);
+            renderEditor(currentScene);
+        }
+
+        function addSfx() {
+            if (!currentScene) return;
+            currentScene.sound_effects.push({ preset_name: enumOpts.sfx_presets[0] || 'success', volume: 0.5, start_time: 0, fade_in: 0, fade_out: 0 });
+            renderEditor(currentScene);
+        }
+
+        function removeSfx(index) {
+            if (!currentScene) return;
+            currentScene.sound_effects.splice(index, 1);
+            renderEditor(currentScene);
         }
 
         function renderAssets(s) {
             const c = document.getElementById('assetContent');
+            const lottieOverlays = s.lottie_overlays || [];
+            const soundEffects = s.sound_effects || [];
             c.innerHTML = `
                 ${renderAssetSection('Rendered Scene', s.rendered_scene_path, 'video', null)}
                 ${renderAssetSection('Audio (TTS)', s.prepared?.audio_path, 'audio', 'audio', s.prepared?.audio_duration ? `Duration: ${s.prepared.audio_duration.toFixed(2)}s` : null)}
                 ${renderAssetSection('Visual Layer (' + s.visual_type + ')', s.prepared?.visual_path, detectMediaType(s.prepared?.visual_path), 'visual')}
-                ${s.text_overlay_content ? renderAssetSection('Text Overlay', s.prepared?.text_overlay_path, 'video', 'text_overlay') : ''}
-                ${s.lottie_count > 0 ? `<div class="asset-section"><div class="asset-header"><span class="asset-title">Lottie Overlays</span><span class="asset-status ready">${s.lottie_count}</span></div></div>` : ''}
-                ${s.sfx_count > 0 ? `<div class="asset-section"><div class="asset-header"><span class="asset-title">Sound Effects</span><span class="asset-status ready">${s.sfx_count}</span></div></div>` : ''}
+                ${s.text_overlay_content !== null ? renderAssetSection('Text Overlay', s.prepared?.text_overlay_path, 'video', 'text_overlay') : ''}
+                ${lottieOverlays.length > 0 ? renderLottiePreviewSection(lottieOverlays) : ''}
+                ${soundEffects.length > 0 ? renderSfxPreviewSection(soundEffects) : ''}
                 <button class="render-scene-btn" onclick="regenerate(currentSceneId, 'scene')">Re-render Scene</button>
             `;
+        }
+
+        function renderLottiePreviewSection(lottieOverlays) {
+            const items = lottieOverlays.map((lo, i) => `
+                <div class="preview-item">
+                    <div class="preview-item-header">
+                        <span class="preview-item-name">${lo.lottie_name}</span>
+                        <span class="preview-item-meta">pos: ${lo.position}, scale: ${lo.scale}</span>
+                    </div>
+                    <div class="preview-item-content" id="lottiePreview_${i}">
+                        <button class="preview-play-btn" onclick="playLottie('${lo.lottie_name}', ${i})">Play</button>
+                    </div>
+                </div>
+            `).join('');
+            return `
+                <div class="asset-section">
+                    <div class="asset-header">
+                        <span class="asset-title">Lottie Overlays</span>
+                        <span class="asset-status ready">${lottieOverlays.length}</span>
+                    </div>
+                    <div class="preview-list">${items}</div>
+                </div>`;
+        }
+
+        function renderSfxPreviewSection(soundEffects) {
+            const items = soundEffects.map((sfx, i) => `
+                <div class="preview-item">
+                    <div class="preview-item-header">
+                        <span class="preview-item-name">${sfx.preset_name}</span>
+                        <span class="preview-item-meta">vol: ${sfx.volume}, start: ${sfx.start_time}s</span>
+                    </div>
+                    <div class="preview-item-content" id="sfxPreview_${i}">
+                        <button class="preview-play-btn" onclick="playSfx('${sfx.preset_name}', ${i})">Play</button>
+                    </div>
+                </div>
+            `).join('');
+            return `
+                <div class="asset-section">
+                    <div class="asset-header">
+                        <span class="asset-title">Sound Effects</span>
+                        <span class="asset-status ready">${soundEffects.length}</span>
+                    </div>
+                    <div class="preview-list">${items}</div>
+                </div>`;
+        }
+
+        async function playLottie(presetName, index) {
+            const container = document.getElementById(`lottiePreview_${index}`);
+            if (!container) return;
+            try {
+                const res = await fetch(`/api/lottie/${encodeURIComponent(presetName)}`);
+                if (!res.ok) throw new Error('Failed to load lottie');
+                const data = await res.json();
+                const cacheBust = `&_t=${Date.now()}`;
+                container.innerHTML = `<video controls autoplay src="/api/asset?path=${encodeURIComponent(data.path)}${cacheBust}" style="max-width:100%;max-height:120px;border-radius:4px;"></video>`;
+            } catch (e) {
+                container.innerHTML = `<p style="color:#ff6b6b;font-size:10px;">Failed to load</p>`;
+            }
+        }
+
+        async function playSfx(presetName, index) {
+            const container = document.getElementById(`sfxPreview_${index}`);
+            if (!container) return;
+            try {
+                const res = await fetch(`/api/sfx/${encodeURIComponent(presetName)}`);
+                if (!res.ok) throw new Error('Failed to load sfx');
+                const data = await res.json();
+                const cacheBust = `&_t=${Date.now()}`;
+                container.innerHTML = `<audio controls autoplay src="/api/asset?path=${encodeURIComponent(data.path)}${cacheBust}" style="width:100%;height:32px;"></audio>`;
+            } catch (e) {
+                container.innerHTML = `<p style="color:#ff6b6b;font-size:10px;">Failed to load</p>`;
+            }
         }
 
         function renderAssetSection(title, path, mediaType, regenType, extra) {
@@ -1061,14 +1578,26 @@ def get_viewer_html() -> str:
                 visual_prompt: document.getElementById('editVisualPrompt')?.value || null,
                 visual_fallback_prompt: document.getElementById('editFallbackPrompt')?.value || null,
                 visual_gen_duration: genDurVal ? parseInt(genDurVal) : null,
-                text_overlay_content: document.getElementById('editTextOverlay')?.value || null,
-                text_overlay_style: document.getElementById('editTextStyle')?.value || null,
-                text_overlay_animation: document.getElementById('editTextAnimation')?.value || null,
                 duration: parseFloat(document.getElementById('editDuration')?.value) || null,
                 sync_mode: document.getElementById('editSyncMode')?.value || null,
+                video_fit_mode: document.getElementById('editVideoFitMode')?.value || null,
                 camera_movement: document.getElementById('editCamera')?.value || null,
                 transition_next: document.getElementById('editTransition')?.value || null,
+                lottie_overlays: getLottieData(),
+                sound_effects: getSfxData(),
             };
+            if (textOverlayEnabled !== null) {
+                data.text_overlay_enabled = textOverlayEnabled;
+            }
+            const toggle = document.getElementById('textOverlayToggle');
+            if (toggle && toggle.classList.contains('on')) {
+                data.text_overlay_content = document.getElementById('editTextOverlay')?.value || '';
+                data.text_overlay_style = document.getElementById('editTextStyle')?.value || null;
+                data.text_overlay_animation = document.getElementById('editTextAnimation')?.value || null;
+                data.text_overlay_position = document.getElementById('editTextPosition')?.value || null;
+                data.text_overlay_font_color = document.getElementById('editFontColorText')?.value || null;
+                data.text_overlay_background_color = document.getElementById('editBgColorText')?.value || null;
+            }
             try {
                 const res = await fetch(`/api/scenes/${currentSceneId}`, {
                     method: 'PATCH',
@@ -1079,6 +1608,7 @@ def get_viewer_html() -> str:
                 const result = await res.json();
                 isDirty = result.dirty || false;
                 updateDirtyIndicator();
+                textOverlayEnabled = null;
                 showToast('Scene saved');
                 await refreshScenes();
             } catch (e) { showToast(e.message, true); }

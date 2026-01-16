@@ -12,6 +12,7 @@ from domains.planning.models import (
     SyncMode,
     TextOverlay,
     TextStyle,
+    VideoFitMode,
     VideoType,
     VisualLayer,
     VisualType,
@@ -71,6 +72,7 @@ class ScenarioParser:
         sound_effects = self._parse_sound_effects(scene_data)
         fx_beat = self._parse_fx_beat(scene_data)
         sync_mode = self._parse_sync_mode(scene_data)
+        video_fit_mode = self._parse_video_fit_mode(scene_data)
         duration = scene_data.get("duration")
 
         prepared = self._parse_prepared(scene_data)
@@ -84,6 +86,7 @@ class ScenarioParser:
             sound_effects=sound_effects,
             fx_beat=fx_beat,
             sync_mode=sync_mode,
+            video_fit_mode=video_fit_mode,
             duration=duration,
             selected_clip_id=scene_data.get("selected_clip_id"),
             prepared=prepared,
@@ -95,6 +98,13 @@ class ScenarioParser:
             return SyncMode(sync_mode_str)
         except ValueError:
             return SyncMode.AUDIO
+
+    def _parse_video_fit_mode(self, scene_data: dict) -> VideoFitMode:
+        video_fit_mode_str = scene_data.get("video_fit_mode", "freeze")
+        try:
+            return VideoFitMode(video_fit_mode_str)
+        except ValueError:
+            return VideoFitMode.FREEZE
 
     def _parse_audio(self, scene_data: dict) -> AudioScript:
         if "audio_script" in scene_data:
