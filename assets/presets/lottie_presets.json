@@ -1,0 +1,18 @@
+{
+  "success": {
+    "description": "체크마크 애니메이션, 성공/완료 표시",
+    "use_case": "작업 완료, 긍정적 결과, 승인 표시"
+  },
+  "error": {
+    "description": "X 마크 애니메이션, 실패/오류 표시",
+    "use_case": "오류 발생, 실패, 거부 표시"
+  },
+  "warning": {
+    "description": "경고 삼각형 애니메이션, 주의 표시",
+    "use_case": "주의 환기, 중요 정보 강조"
+  },
+  "loading": {
+    "description": "로딩 스피너 애니메이션",
+    "use_case": "대기 중, 처리 중 상태 표시"
+  }
+}

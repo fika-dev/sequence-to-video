@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.opencode/hooks/check-test-update.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

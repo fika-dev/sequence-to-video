@@ -49,6 +49,7 @@ class SceneUpdateRequest(BaseModel):
     visual_type: str | None = None
     visual_prompt: str | None = None
     visual_fallback_prompt: str | None = None
+    visual_gen_duration: int | None = None
     text_overlay_content: str | None = None
     text_overlay_style: str | None = None
     text_overlay_animation: str | None = None
@@ -68,6 +69,7 @@ class SceneAssetInfo(BaseModel):
     visual_prompt: str | None
     visual_fallback_prompt: str | None
     visual_query_tags: list[str]
+    visual_gen_duration: int | None
     text_overlay_content: str | None
     text_overlay_style: str | None
     text_overlay_animation: str | None
@@ -97,6 +99,11 @@ def get_rendered_scene_path(project_id: str, scene_id: str) -> Path | None:
     config = get_config()
     scene_path = config.paths.review_output / project_id / "scenes" / f"{scene_id}.mp4"
     return scene_path if scene_path.exists() else None
+
+
+def _snap_to_veo_duration(duration: float) -> int:
+    valid_durations = [4, 6, 8]
+    return min(valid_durations, key=lambda x: abs(x - duration))
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -165,6 +172,7 @@ def _build_scene_info(scene, rendered_path: Path | None) -> SceneAssetInfo:
         visual_prompt=scene.visual_layer.prompt,
         visual_fallback_prompt=scene.visual_layer.fallback_gen_prompt,
         visual_query_tags=scene.visual_layer.query_tags,
+        visual_gen_duration=scene.visual_layer.gen_duration,
         text_overlay_content=scene.text_overlay.content if scene.text_overlay else None,
         text_overlay_style=scene.text_overlay.style.value if scene.text_overlay else None,
         text_overlay_animation=scene.text_overlay.animation.value if scene.text_overlay else None,
@@ -217,6 +225,8 @@ async def update_scene(scene_id: str, request: SceneUpdateRequest):
         scene.visual_layer.prompt = request.visual_prompt
     if request.visual_fallback_prompt is not None:
         scene.visual_layer.fallback_gen_prompt = request.visual_fallback_prompt
+    if request.visual_gen_duration is not None:
+        scene.visual_layer.gen_duration = request.visual_gen_duration
     if request.text_overlay_content is not None and scene.text_overlay:
         scene.text_overlay.content = request.text_overlay_content
     if request.text_overlay_style is not None and scene.text_overlay:
@@ -232,9 +242,9 @@ async def update_scene(scene_id: str, request: SceneUpdateRequest):
     if request.transition_next is not None:
         scene.fx_beat.transition_next = Transition(request.transition_next)
 
-    _state["dirty"] = True
+    _save_to_file()
 
-    return {"status": "updated", "scene_id": scene_id, "dirty": True}
+    return {"status": "updated", "scene_id": scene_id, "dirty": False}
 
 
 @app.get("/api/asset")
@@ -403,9 +413,10 @@ def _regenerate_visual(scene_id: str, task_id: str):
                 output_dir=config.paths.generated / "videos",
                 project=config.api.google_project_id,
                 location="us-central1",
+                gcs_bucket=config.api.gcs_bucket,
                 cache=None,
             )
-            duration = int(scene.duration or 5)
+            duration = visual.gen_duration or _snap_to_veo_duration(scene.duration or 6)
             asset = video_gen.generate(prompt=prompt, width=width, height=height, duration=duration)
             visual_path = asset.file_path
         else:
@@ -515,6 +526,7 @@ def _regenerate_scene(scene_id: str, task_id: str):
             output_dir=config.paths.generated / "videos",
             project=config.api.google_project_id,
             location="us-central1",
+            gcs_bucket=config.api.gcs_bucket,
             cache=cache,
         )
         text_renderer = TextAnimationRenderer(
@@ -587,6 +599,8 @@ def _save_to_file():
                     scene.visual_layer.fallback_gen_prompt
                 )
                 orig_scene["visual_layer"]["query_tags"] = scene.visual_layer.query_tags
+                if scene.visual_layer.gen_duration:
+                    orig_scene["visual_layer"]["gen_duration"] = scene.visual_layer.gen_duration
                 if scene.text_overlay:
                     if "text_overlay" not in orig_scene:
                         orig_scene["text_overlay"] = {}
@@ -920,9 +934,20 @@ def get_viewer_html() -> str:
                         <label class="form-label">Fallback Prompt</label>
                         <textarea class="form-textarea" id="editFallbackPrompt">${esc(s.visual_fallback_prompt || '')}</textarea>
                     </div>
-                    <div class="form-row">
-                        <label class="form-label">Query Tags</label>
-                        <div>${s.visual_query_tags.map(t => `<span class="tag">${esc(t)}</span>`).join('') || '<span class="meta-info">No tags</span>'}</div>
+                    <div class="form-row-inline">
+                        <div class="form-row">
+                            <label class="form-label">Query Tags</label>
+                            <div>${s.visual_query_tags.map(t => `<span class="tag">${esc(t)}</span>`).join('') || '<span class="meta-info">No tags</span>'}</div>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Gen Duration (4/6/8s)</label>
+                            <select class="form-select" id="editGenDuration">
+                                <option value="" ${!s.visual_gen_duration ? 'selected' : ''}>Auto</option>
+                                <option value="4" ${s.visual_gen_duration === 4 ? 'selected' : ''}>4s</option>
+                                <option value="6" ${s.visual_gen_duration === 6 ? 'selected' : ''}>6s</option>
+                                <option value="8" ${s.visual_gen_duration === 8 ? 'selected' : ''}>8s</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -1028,12 +1053,14 @@ def get_viewer_html() -> str:
 
         async function saveScene() {
             if (!currentSceneId) return;
+            const genDurVal = document.getElementById('editGenDuration')?.value;
             const data = {
                 audio_script_text: document.getElementById('editAudioText')?.value,
                 audio_script_speed: parseFloat(document.getElementById('editAudioSpeed')?.value) || null,
                 visual_type: document.getElementById('editVisualType')?.value || null,
                 visual_prompt: document.getElementById('editVisualPrompt')?.value || null,
                 visual_fallback_prompt: document.getElementById('editFallbackPrompt')?.value || null,
+                visual_gen_duration: genDurVal ? parseInt(genDurVal) : null,
                 text_overlay_content: document.getElementById('editTextOverlay')?.value || null,
                 text_overlay_style: document.getElementById('editTextStyle')?.value || null,
                 text_overlay_animation: document.getElementById('editTextAnimation')?.value || null,
@@ -1050,15 +1077,16 @@ def get_viewer_html() -> str:
                 });
                 if (!res.ok) throw new Error((await res.json()).detail);
                 const result = await res.json();
-                isDirty = result.dirty || isDirty;
+                isDirty = result.dirty || false;
                 updateDirtyIndicator();
-                showToast('Scene updated (not saved to file)');
+                showToast('Scene saved');
                 await refreshScenes();
             } catch (e) { showToast(e.message, true); }
         }
 
         async function regenerate(sceneId, assetType) {
             try {
+                await saveScene();
                 const res = await fetch('/api/regenerate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

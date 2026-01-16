@@ -560,6 +560,7 @@
         const SYNC_MODES = ['audio', 'visual', 'beat'];
         const LOTTIE_PRESETS = ['success', 'error', 'warning', 'loading'];
         const LOTTIE_POSITIONS = ['top', 'center', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right'];
+        const SFX_PRESETS = ['success', 'error', 'warning', 'loading', 'whoosh', 'click'];
         const VOICE_PRESETS = [
             'chirp_v3_korean_female_confident',
             'chirp_v3_korean_female_cynical', 
@@ -669,7 +670,8 @@
                     <div class="scene-meta">
                         <span class="tag">${visualType.replace(/_/g, ' ')}</span>
                         ${scene.text_overlay ? '<span class="tag">text</span>' : ''}
-                        ${scene.lottie_overlays?.length ? '<span class="tag">lottie</span>' : ''}
+                                        ${scene.lottie_overlays?.length ? '<span class="tag">lottie</span>' : ''}
+                                        ${scene.sound_effects?.length ? '<span class="tag">sfx</span>' : ''}
                     </div>
                 `;
 
@@ -819,6 +821,22 @@
                         ${(scene.lottie_overlays || []).length ? 
                             scene.lottie_overlays.map((lo, i) => renderLottieItem(lo, i)).join('') :
                             '<div class="empty-state">No lottie overlays</div>'
+                        }
+                    </div>
+                </div>
+
+                <!-- Sound Effects -->
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">Sound Effects</span>
+                        <div class="section-actions">
+                            <button class="btn btn-small btn-secondary" id="add-sfx">+ Add SFX</button>
+                        </div>
+                    </div>
+                    <div class="lottie-list" id="sfx-list">
+                        ${(scene.sound_effects || []).length ? 
+                            scene.sound_effects.map((sfx, i) => renderSFXItem(sfx, i)).join('') :
+                            '<div class="empty-state">No sound effects</div>'
                         }
                     </div>
                 </div>
@@ -993,6 +1011,55 @@
             `;
         }
 
+        function renderSFXItem(sfx, index) {
+            return `
+                <div class="lottie-item" data-sfx-index="${index}">
+                    <div class="lottie-item-header">
+                        <span class="lottie-item-name">${sfx.preset_name}</span>
+                        <span class="sfx-item-remove" data-index="${index}">×</span>
+                    </div>
+                    <div class="lottie-grid">
+                        <div class="property">
+                            <span class="property-key">Preset</span>
+                            <div class="property-value">
+                                <select class="input-select" data-sfx="${index}" data-field="preset_name">
+                                    ${SFX_PRESETS.map(p => `<option value="${p}" ${sfx.preset_name === p ? 'selected' : ''}>${p}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="property">
+                            <span class="property-key">Volume</span>
+                            <div class="property-value">
+                                <input type="number" class="input-number" data-sfx="${index}" data-field="volume"
+                                    value="${sfx.volume ?? 0.5}" min="0" max="1" step="0.1">
+                            </div>
+                        </div>
+                        <div class="property">
+                            <span class="property-key">Start Time</span>
+                            <div class="property-value">
+                                <input type="number" class="input-number" data-sfx="${index}" data-field="start_time"
+                                    value="${sfx.start_time || 0}" min="0" step="0.1">
+                            </div>
+                        </div>
+                        <div class="property">
+                            <span class="property-key">Fade In</span>
+                            <div class="property-value">
+                                <input type="number" class="input-number" data-sfx="${index}" data-field="fade_in"
+                                    value="${sfx.fade_in || 0}" min="0" step="0.1">
+                            </div>
+                        </div>
+                        <div class="property">
+                            <span class="property-key">Fade Out</span>
+                            <div class="property-value">
+                                <input type="number" class="input-number" data-sfx="${index}" data-field="fade_out"
+                                    value="${sfx.fade_out || 0}" min="0" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function attachEventListeners() {
             // Generic input handlers
             sceneDetail.querySelectorAll('[data-path]').forEach(el => {
@@ -1124,6 +1191,59 @@
                     const index = parseInt(el.dataset.index);
                     const scene = getScene();
                     scene.lottie_overlays.splice(index, 1);
+                    markModified();
+                    selectScene(selectedSceneId);
+                });
+            });
+
+            // SFX field handlers
+            sceneDetail.querySelectorAll('[data-sfx]').forEach(el => {
+                const event = el.tagName === 'SELECT' ? 'change' : 'input';
+                el.addEventListener(event, (e) => {
+                    const index = parseInt(el.dataset.sfx);
+                    const field = el.dataset.field;
+                    let value = el.value;
+
+                    if (el.type === 'number') value = parseFloat(value);
+
+                    const scene = getScene();
+                    if (scene.sound_effects && scene.sound_effects[index]) {
+                        scene.sound_effects[index][field] = value;
+                        markModified();
+                        renderSceneList();
+                        
+                        if (field === 'preset_name') {
+                            const header = el.closest('.lottie-item').querySelector('.lottie-item-name');
+                            if (header) header.textContent = value;
+                        }
+                    }
+                });
+            });
+
+            // Add SFX
+            const addSFX = document.getElementById('add-sfx');
+            if (addSFX) {
+                addSFX.addEventListener('click', () => {
+                    const scene = getScene();
+                    if (!scene.sound_effects) scene.sound_effects = [];
+                    scene.sound_effects.push({
+                        preset_name: 'success',
+                        volume: 0.5,
+                        start_time: 0,
+                        fade_in: 0,
+                        fade_out: 0
+                    });
+                    markModified();
+                    selectScene(selectedSceneId);
+                });
+            }
+
+            // Remove SFX
+            sceneDetail.querySelectorAll('.sfx-item-remove').forEach(el => {
+                el.addEventListener('click', () => {
+                    const index = parseInt(el.dataset.index);
+                    const scene = getScene();
+                    scene.sound_effects.splice(index, 1);
                     markModified();
                     selectScene(selectedSceneId);
                 });

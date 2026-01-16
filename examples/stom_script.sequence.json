@@ -20,9 +20,9 @@
       "scene_id": "s01",
       "sequence_order": 1,
       "audio_script": {
-        "text": "맨날 야식 먹고도 배 안나오게 유지하는 그 언니가 먹는거, 소화 효소인 줄 알았는데 그거 아니래요.",
+        "text": "맨날 야식 먹고도 배 안나오게 유지하는 그 언니가 먹는거.  소화 효소인 줄 알았는데 그거 아니래요.",
         "voice_preset_id": "chirp_v3_korean_female_confident",
-        "speed": 1.0
+        "speed": 1.2
       },
       "visual_layer": {
         "type": "existing_footage",
@@ -37,15 +37,25 @@
       "text_overlay": {
         "content": "야식 먹어도 날씬한 언니의 비밀?",
         "style_template": "bold_impact_white",
-        "animation": "fade_in_up",
-        "position": "center"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
         "camera_movement": "zoom_out_slow",
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s01_audio_1.20.wav",
+        "audio_duration": 5.394333333333333,
+        "visual_path": "assets/raw_footage/stom/코크_직장인_신지민_260107/애프터 컷.mp4",
+        "visual_clip_start": 0.0,
+        "visual_clip_end": 7.0,
+        "text_overlay_path": "assets/generated/text_overlays/text_77efac49.mov"
+      },
+      "selected_clip_id": "야식(과자) 컷_clip_000"
     },
     {
       "scene_id": "s02",
@@ -56,7 +66,7 @@
         "speed": 1.0
       },
       "visual_layer": {
-        "type": "existing_footage",
+        "type": "image_gen",
         "prompt": "Fast cuts of people pouring enzyme powder into their mouths after eating, looking bloated and uncomfortable",
         "query_tags": [
           "eating",
@@ -68,46 +78,61 @@
       "text_overlay": {
         "content": "효소 습관, 지금 멈추세요!",
         "style_template": "bold_impact_red",
-        "animation": "shake",
-        "position": "top"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_red"
       },
       "fx_beat": {
         "camera_movement": "none",
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s02_audio_1.00.wav",
+        "audio_duration": 6.6,
+        "visual_path": "assets/generated/images/img_7536934f.png",
+        "text_overlay_path": "assets/generated/text_overlays/text_cd9e86a1.mov"
+      }
     },
     {
       "scene_id": "s03",
       "sequence_order": 3,
       "audio_script": {
-        "text": "효소는 먹은 음식을 빠르게 분해해서, 몸에 더 빨리, 더 잘 흡수되라고 열심히 도와주는거예요",
+        "text": "효소는 먹은 음식을 빠르게 분해해서 더 빨리! 더 잘! 흡수되라고 열심히 도와주는거예요!",
         "voice_preset_id": "chirp_v3_korean_female_cynical",
-        "speed": 1.1
+        "speed": 1.2
       },
       "visual_layer": {
-        "type": "motion_graphic_gen",
-        "prompt": "3D medical animation of food being broken down into red particles (fat/sugar) inside a stomach and spreading rapidly into the bloodstream",
+        "type": "image_gen",
+        "prompt": "3D illustration of congestion (food -> particles)",
         "query_tags": [
           "digestion",
           "medical graphic",
           "absorption"
         ],
-        "fallback_gen_prompt": "Abstract graphic of particles moving fast through a tube"
+        "fallback_gen_prompt": "Abstract graphic of particles moving fast through a tube",
+        "gen_duration": 6
       },
       "text_overlay": {
         "content": "효소 = 흡수를 돕는 촉매제",
         "style_template": "subtitle_clean",
-        "animation": "typewriter",
-        "position": "bottom"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
-        "camera_movement": "zoom_in_slow",
+        "camera_movement": "none",
         "transition_next": "dissolve"
       },
-      "sync_mode": "visual",
-      "duration": null
+      "sync_mode": "audio",
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s03_audio_1.20.wav",
+        "audio_duration": 7.014333,
+        "visual_path": "assets/generated/images/img_d490f8e9.png",
+        "text_overlay_path": "assets/generated/text_overlays/text_29b5e42c.mov"
+      }
     },
     {
       "scene_id": "s04",
@@ -130,15 +155,20 @@
       "text_overlay": {
         "content": "문제는 소화가 아니라 '흡수'!",
         "style_template": "bold_impact_white",
-        "animation": "bounce",
-        "position": "center"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
         "camera_movement": "shake",
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s04_audio_1.00.wav",
+        "audio_duration": 5.72
+      }
     },
     {
       "scene_id": "s05",
@@ -162,14 +192,19 @@
         "content": "그대로 뱃살행..?",
         "style_template": "bold_impact_red",
         "animation": "fade_in",
-        "position": "bottom"
+        "position": "bottom",
+        "style": "bold_impact_red"
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s05_audio_1.00.wav",
+        "audio_duration": 5.6
+      }
     },
     {
       "scene_id": "s06",
@@ -177,7 +212,7 @@
       "audio_script": {
         "text": "진짜 살 안 찌는 사람들은 소화력이 좋은 게 아니라, 장 속에 흡수를 걸러주는 '거름망'이 아주 촘촘한 거예요.",
         "voice_preset_id": "chirp_v3_korean_female_confident",
-        "speed": 1.0
+        "speed": 1.2
       },
       "visual_layer": {
         "type": "motion_graphic_gen",
@@ -188,20 +223,27 @@
           "intestine",
           "protection"
         ],
-        "fallback_gen_prompt": "A grid pattern glowing blue"
+        "fallback_gen_prompt": "A grid pattern glowing blue",
+        "gen_duration": 6
       },
       "text_overlay": {
         "content": "장 속 '거름망'의 차이",
         "style_template": "bold_impact_white",
-        "animation": "slide_in_left",
-        "position": "top"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
         "camera_movement": "none",
         "transition_next": "whip_pan_right"
       },
-      "sync_mode": "visual",
-      "duration": null
+      "sync_mode": "audio",
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s06_audio_1.20.wav",
+        "audio_duration": 6.234333,
+        "visual_path": "assets/generated/videos/vid_f9bf448f.mp4"
+      }
     },
     {
       "scene_id": "s07",
@@ -212,8 +254,8 @@
         "speed": 1.0
       },
       "visual_layer": {
-        "type": "existing_footage",
-        "prompt": "Split screen: Left side shows a sad woman eating a small salad, right side shows a sponge absorbing red liquid rapidly",
+        "type": "image_gen",
+        "prompt": "Woman looking tired of dieting",
         "query_tags": [
           "salad",
           "sponge",
@@ -225,14 +267,21 @@
         "content": "식단해도 안 빠지는 이유",
         "style_template": "subtitle_clean",
         "animation": "fade_in",
-        "position": "bottom"
+        "position": "bottom",
+        "style": "subtitle_clean"
       },
       "fx_beat": {
         "camera_movement": "none",
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s07_audio_1.00.wav",
+        "audio_duration": 7.0,
+        "visual_path": "assets/generated/images/img_3e0f85a6.png",
+        "text_overlay_path": "assets/generated/text_overlays/text_f30aebd5.mov"
+      }
     },
     {
       "scene_id": "s08",
@@ -240,7 +289,7 @@
       "audio_script": {
         "text": "이 거름망이 튼튼하면, 기름진 걸 먹어도 몸에 흡수되기 전에 싹 걸러서 밖으로 내보내거든요.",
         "voice_preset_id": "chirp_v3_korean_female_confident",
-        "speed": 1.0
+        "speed": 1.2
       },
       "visual_layer": {
         "type": "existing_footage",
@@ -255,15 +304,21 @@
       "text_overlay": {
         "content": "흡수 전 차단 & 배출",
         "style_template": "bold_impact_white",
-        "animation": "fade_in_up",
-        "position": "center"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
         "transition_next": "cut"
       },
       "sync_mode": "visual",
-      "duration": null
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s08_audio_1.00.wav",
+        "audio_duration": 6.52,
+        "visual_path": "assets/generated/images/img_d82caf52.png"
+      }
     },
     {
       "scene_id": "s09",
@@ -286,8 +341,9 @@
       "text_overlay": {
         "content": "소화제 NO! '식이섬유' 필수",
         "style_template": "bold_impact_white",
-        "animation": "bounce",
-        "position": "bottom"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
@@ -295,7 +351,11 @@
       },
       "sync_mode": "audio",
       "duration": null,
-      "selected_clip_id": "제품보관컷_직장인_clip_002"
+      "selected_clip_id": "제품보관컷_직장인_clip_002",
+      "prepared": {
+        "audio_path": "assets/generated/audio/s09_audio_1.00.wav",
+        "audio_duration": 6.36
+      }
     },
     {
       "scene_id": "s10",
@@ -318,15 +378,20 @@
       "text_overlay": {
         "content": "지방/당 흡착 시스템",
         "style_template": "subtitle_clean",
-        "animation": "typewriter",
-        "position": "center"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "subtitle_clean"
       },
       "fx_beat": {
         "camera_movement": "none",
         "transition_next": "dissolve"
       },
       "sync_mode": "visual",
-      "duration": null
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s10_audio_1.00.wav",
+        "audio_duration": 6.64
+      }
     },
     {
       "scene_id": "s11",
@@ -350,14 +415,19 @@
         "content": "야식 먹어도 아침이 가볍다!",
         "style_template": "bold_impact_white",
         "animation": "fade_in",
-        "position": "top"
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
         "camera_movement": "zoom_out_slow",
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s11_audio_1.00.wav",
+        "audio_duration": 7.24
+      }
     },
     {
       "scene_id": "s12",
@@ -380,15 +450,20 @@
       "text_overlay": {
         "content": "직장인 필수 '비밀 관리템'",
         "style_template": "subtitle_clean",
-        "animation": "slide_in_left",
-        "position": "bottom"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "subtitle_clean"
       },
       "fx_beat": {
         "camera_movement": "none",
         "transition_next": "cut"
       },
       "sync_mode": "audio",
-      "duration": null
+      "duration": null,
+      "prepared": {
+        "audio_path": "assets/generated/audio/s12_audio_1.00.wav",
+        "audio_duration": 6.92
+      }
     },
     {
       "scene_id": "s13",
@@ -411,8 +486,9 @@
       "text_overlay": {
         "content": "10mm 초소형 미니 정제",
         "style_template": "bold_impact_white",
-        "animation": "fade_in_up",
-        "position": "center"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
@@ -420,7 +496,11 @@
       },
       "sync_mode": "audio",
       "duration": null,
-      "selected_clip_id": "직장 애프터, 직장 섭취 컷 _직장인_clip_005"
+      "selected_clip_id": "직장 애프터, 직장 섭취 컷 _직장인_clip_005",
+      "prepared": {
+        "audio_path": "assets/generated/audio/s13_audio_1.00.wav",
+        "audio_duration": 7.6
+      }
     },
     {
       "scene_id": "s14",
@@ -444,7 +524,8 @@
         "content": "하루 종일 속이 편안하게",
         "style_template": "subtitle_clean",
         "animation": "fade_in",
-        "position": "bottom"
+        "position": "bottom",
+        "style": "subtitle_clean"
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -452,7 +533,11 @@
       },
       "sync_mode": "audio",
       "duration": null,
-      "selected_clip_id": "직장 애프터, 직장 섭취 컷 _직장인_clip_006"
+      "selected_clip_id": "직장 애프터, 직장 섭취 컷 _직장인_clip_006",
+      "prepared": {
+        "audio_path": "assets/generated/audio/s14_audio_1.00.wav",
+        "audio_duration": 6.68
+      }
     },
     {
       "scene_id": "s15",
@@ -475,8 +560,9 @@
       "text_overlay": {
         "content": "묵은 것까지 싹- 비움",
         "style_template": "bold_impact_white",
-        "animation": "bounce",
-        "position": "center"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
         "camera_movement": "shake",
@@ -484,7 +570,11 @@
       },
       "sync_mode": "audio",
       "duration": null,
-      "selected_clip_id": "안돼요 컷, 밥 반공기 컷, 화장실 오케이 컷, 디저트 간식 안먹어요 컷, 제형 섭취 컷, 제형 보여주기 컷,_clip_002"
+      "selected_clip_id": "안돼요 컷, 밥 반공기 컷, 화장실 오케이 컷, 디저트 간식 안먹어요 컷, 제형 섭취 컷, 제형 보여주기 컷,_clip_002",
+      "prepared": {
+        "audio_path": "assets/generated/audio/s15_audio_1.00.wav",
+        "audio_duration": 7.12
+      }
     },
     {
       "scene_id": "s16",
@@ -507,8 +597,9 @@
       "text_overlay": {
         "content": "식물성 100% 황금배합",
         "style_template": "subtitle_clean",
-        "animation": "typewriter",
-        "position": "bottom"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "subtitle_clean"
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -516,7 +607,11 @@
       },
       "sync_mode": "visual",
       "duration": null,
-      "selected_clip_id": "제품보관컷_직장인_clip_001"
+      "selected_clip_id": "제품보관컷_직장인_clip_001",
+      "prepared": {
+        "audio_path": "assets/generated/audio/s16_audio_1.00.wav",
+        "audio_duration": 8.56
+      }
     },
     {
       "scene_id": "s17",
@@ -540,7 +635,8 @@
         "content": "가장 똑똑한 다이어트 투자",
         "style_template": "bold_impact_white",
         "animation": "fade_in",
-        "position": "center"
+        "position": "bottom",
+        "style": "bold_impact_white"
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
@@ -548,7 +644,11 @@
       },
       "sync_mode": "audio",
       "duration": null,
-      "selected_clip_id": "직장 애프터 컷_직장인_clip_002"
+      "selected_clip_id": "직장 애프터 컷_직장인_clip_002",
+      "prepared": {
+        "audio_path": "assets/generated/audio/s17_audio_1.00.wav",
+        "audio_duration": 6.4
+      }
     },
     {
       "scene_id": "s18",
@@ -571,8 +671,9 @@
       "text_overlay": {
         "content": "한정 수량 특가! 지금 확인",
         "style_template": "bold_impact_red",
-        "animation": "bounce",
-        "position": "center"
+        "animation": "fade_in",
+        "position": "bottom",
+        "style": "bold_impact_red"
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -580,7 +681,11 @@
       },
       "sync_mode": "visual",
       "duration": null,
-      "selected_clip_id": "내레이션_조정연_clip_003"
+      "selected_clip_id": "내레이션_조정연_clip_003",
+      "prepared": {
+        "audio_path": "assets/generated/audio/s18_audio_1.00.wav",
+        "audio_duration": 5.64
+      }
     }
   ]
 }

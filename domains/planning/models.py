@@ -69,6 +69,9 @@ class VisualLayer(BaseModel):
     fallback_gen_prompt: str | None = None
     model: str = "google_imagen_3"
     clip_offset: float | None = None
+    gen_duration: int | None = Field(
+        default=None, description="Video generation duration (4, 6, or 8 seconds)"
+    )
 
 
 class TextOverlay(BaseModel):

@@ -121,6 +121,8 @@ class ScenarioParser:
                 prompt=vl.get("prompt"),
                 fallback_gen_prompt=vl.get("fallback_gen_prompt"),
                 model=vl.get("model", "google_imagen_3"),
+                clip_offset=vl.get("clip_offset"),
+                gen_duration=vl.get("gen_duration"),
             )
 
         visual_note = scene_data.get("scene_visual_note", "")

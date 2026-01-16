@@ -274,6 +274,39 @@ uv run python scripts/convert_lottie_to_mov.py --force -v
 
 Output MOV files are saved to `assets/stock/lottie_mov/` and can be used as overlays in video composition.
 
+### Managing Presets
+
+Preset definitions for Lottie overlays and sound effects are stored in `assets/presets/`. The sequence generator reads these files to include available presets in the generation prompt.
+
+```
+assets/presets/
+├── lottie_presets.json   # Lottie animation presets with descriptions
+└── sfx_presets.json      # Sound effect presets with descriptions
+```
+
+Each preset includes:
+- `description`: What the preset is (shown to LLM during sequence generation)
+- `use_case`: When to use it (helps LLM make appropriate selections)
+
+#### Syncing Presets
+
+When you add new Lottie animations or sound effects to the providers, sync the preset files:
+
+```bash
+# Check for differences without modifying files
+uv run python scripts/update_presets.py --check
+
+# Sync preset files (adds new presets, removes stale ones)
+uv run python scripts/update_presets.py
+```
+
+The script will:
+- Add new presets with placeholder descriptions (edit manually)
+- Remove presets that no longer exist in providers
+- Preserve existing descriptions for unchanged presets
+
+After syncing, edit the JSON files to add meaningful descriptions for new presets.
+
 ## Project Structure
 
 ```
@@ -308,12 +341,17 @@ scripts/
 ├── test_sfx.py              # Sound effects testing
 ├── test_sequence.py         # Sequence generation testing
 ├── convert_lottie_to_mov.py # Lottie JSON → MOV conversion
-└── convert_mov_to_mp4.py    # Format conversion
+├── convert_mov_to_mp4.py    # Format conversion
+└── update_presets.py        # Sync preset JSON files from providers
 
-assets/stock/
-├── lottie/       # Source Lottie JSON files
-├── lottie_mov/   # Pre-rendered MOV files (ProRes 4444 with alpha)
-└── sfx/          # Pre-downloaded sound effect MP3 files
+assets/
+├── presets/      # Preset definitions for sequence generation
+│   ├── lottie_presets.json
+│   └── sfx_presets.json
+└── stock/
+    ├── lottie/       # Source Lottie JSON files
+    ├── lottie_mov/   # Pre-rendered MOV files (ProRes 4444 with alpha)
+    └── sfx/          # Pre-downloaded sound effect MP3 files
 ```
 
 ## Model Configuration
