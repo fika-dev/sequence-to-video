@@ -1,30 +1,33 @@
+import json
 import subprocess
 from pathlib import Path
 
 from domains.studio.models import AudioAsset
 
-
-SFX_PRESETS = {
-    "success": "assets/stock/sfx/success_ding.mp3",
-    "error": "assets/stock/sfx/error_beep.mp3",
-    "warning": "assets/stock/sfx/warning_alert.mp3",
-    "loading": "assets/stock/sfx/loading_tick.mp3",
-    "whoosh": "assets/stock/sfx/sfx_391449.mp3",
-    "click": "assets/stock/sfx/sfx_687105.mp3",
-}
-
 DEFAULT_SFX_DIR = Path("assets/stock/sfx")
+SFX_PRESETS_FILE = Path("assets/presets/sfx_presets.json")
+
+
+def _load_sfx_presets() -> dict[str, dict]:
+    if not SFX_PRESETS_FILE.exists():
+        return {}
+    with open(SFX_PRESETS_FILE, encoding="utf-8") as f:
+        return json.load(f)
 
 
 class SFXProvider:
     def __init__(self, sfx_dir: Path | None = None):
         self.sfx_dir = Path(sfx_dir) if sfx_dir else DEFAULT_SFX_DIR
+        self._presets = _load_sfx_presets()
 
     def get_sfx_path(self, sfx_name: str) -> Path:
-        if sfx_name in SFX_PRESETS:
-            path = Path(SFX_PRESETS[sfx_name])
-            if path.exists():
-                return path
+        if sfx_name in self._presets:
+            preset = self._presets[sfx_name]
+            file_path = preset.get("file_path")
+            if file_path:
+                path = Path(file_path)
+                if path.exists():
+                    return path
 
         for ext in [".mp3", ".wav", ".ogg"]:
             sfx_path = self.sfx_dir / f"{sfx_name}{ext}"
@@ -36,7 +39,7 @@ class SFXProvider:
             return direct_path
 
         raise FileNotFoundError(
-            f"SFX not found: {sfx_name}. Available presets: {', '.join(SFX_PRESETS.keys())}"
+            f"SFX not found: {sfx_name}. Available presets: {', '.join(self._presets.keys())}"
         )
 
     def get_sfx(self, sfx_name: str) -> AudioAsset:
@@ -72,15 +75,20 @@ class SFXProvider:
 
     @staticmethod
     def list_presets() -> list[str]:
-        return list(SFX_PRESETS.keys())
+        presets = _load_sfx_presets()
+        return list(presets.keys())
 
     @staticmethod
     def list_available() -> dict[str, dict]:
+        presets = _load_sfx_presets()
         available = {}
-        for name, path in SFX_PRESETS.items():
-            path_obj = Path(path)
+        for name, data in presets.items():
+            file_path = data.get("file_path", "")
+            path_obj = Path(file_path) if file_path else None
             available[name] = {
-                "path": path,
-                "exists": path_obj.exists(),
+                "file_path": file_path,
+                "description": data.get("description", ""),
+                "use_case": data.get("use_case", ""),
+                "exists": path_obj.exists() if path_obj else False,
             }
         return available

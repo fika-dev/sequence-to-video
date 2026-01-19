@@ -1,17 +1,18 @@
+import json
 import subprocess
 from pathlib import Path
 
 from domains.studio.models import VideoAsset
 
-
-LOTTIE_PRESETS = {
-    "success": "assets/stock/lottie_mov/success.mov",
-    "error": "assets/stock/lottie_mov/error.mov",
-    "warning": "assets/stock/lottie_mov/warning.mov",
-    "loading": "assets/stock/lottie_mov/loading.mov",
-}
-
 DEFAULT_LOTTIE_MOV_DIR = Path("assets/stock/lottie_mov")
+LOTTIE_PRESETS_FILE = Path("assets/presets/lottie_presets.json")
+
+
+def _load_lottie_presets() -> dict[str, dict]:
+    if not LOTTIE_PRESETS_FILE.exists():
+        return {}
+    with open(LOTTIE_PRESETS_FILE, encoding="utf-8") as f:
+        return json.load(f)
 
 
 class LottieRenderer:
@@ -20,12 +21,16 @@ class LottieRenderer:
         lottie_mov_dir: Path | None = None,
     ):
         self.lottie_mov_dir = Path(lottie_mov_dir) if lottie_mov_dir else DEFAULT_LOTTIE_MOV_DIR
+        self._presets = _load_lottie_presets()
 
     def get_overlay_path(self, lottie_name: str) -> Path:
-        if lottie_name in LOTTIE_PRESETS:
-            path = Path(LOTTIE_PRESETS[lottie_name])
-            if path.exists():
-                return path
+        if lottie_name in self._presets:
+            preset = self._presets[lottie_name]
+            file_path = preset.get("file_path")
+            if file_path:
+                path = Path(file_path)
+                if path.exists():
+                    return path
 
         mov_path = self.lottie_mov_dir / f"{lottie_name}.mov"
         if mov_path.exists():
@@ -92,15 +97,20 @@ class LottieRenderer:
 
     @staticmethod
     def list_presets() -> list[str]:
-        return list(LOTTIE_PRESETS.keys())
+        presets = _load_lottie_presets()
+        return list(presets.keys())
 
     @staticmethod
     def list_available() -> dict[str, dict]:
+        presets = _load_lottie_presets()
         available = {}
-        for name, path in LOTTIE_PRESETS.items():
-            path_obj = Path(path)
+        for name, data in presets.items():
+            file_path = data.get("file_path", "")
+            path_obj = Path(file_path) if file_path else None
             available[name] = {
-                "path": path,
-                "exists": path_obj.exists(),
+                "file_path": file_path,
+                "description": data.get("description", ""),
+                "use_case": data.get("use_case", ""),
+                "exists": path_obj.exists() if path_obj else False,
             }
         return available

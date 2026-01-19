@@ -50,6 +50,12 @@ class SyncMode(str, Enum):
     BEAT = "beat"
 
 
+class VideoFitMode(str, Enum):
+    LOOP = "loop"
+    FREEZE = "freeze"
+    SPEED = "speed"
+
+
 class VideoType(str, Enum):
     UGC_CENTERED = "ugc_centered"
     AI_GENERATED = "ai_generated"
@@ -67,6 +73,7 @@ class VisualLayer(BaseModel):
     query_tags: list[str] = Field(default_factory=list)
     prompt: str | None = None
     fallback_gen_prompt: str | None = None
+    candidate_clips: list[str] = Field(default_factory=list)
     model: str = "google_imagen_3"
     clip_offset: float | None = None
     gen_duration: int | None = Field(
@@ -133,6 +140,7 @@ class Scene(BaseModel):
     fx_beat: FxBeat = Field(default_factory=FxBeat)
     duration: float | None = None
     sync_mode: SyncMode = SyncMode.AUDIO
+    video_fit_mode: VideoFitMode = VideoFitMode.FREEZE
     selected_clip_id: str | None = None
     prepared: PreparedAssets | None = None
 

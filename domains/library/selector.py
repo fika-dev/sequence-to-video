@@ -51,6 +51,7 @@ class FootageSelector:
         visual_prompt: str,
         query_tags: list[str],
         min_duration: float,
+        candidate_clip_ids: list[str] | None = None,
         verbose: bool = False,
     ) -> VideoClip | None:
         if not clips:
@@ -59,6 +60,13 @@ class FootageSelector:
         eligible_clips = [c for c in clips if c.duration >= min_duration]
         if not eligible_clips:
             eligible_clips = clips
+
+        if candidate_clip_ids:
+            prioritized = self._prioritize_candidates(eligible_clips, candidate_clip_ids)
+            if prioritized:
+                eligible_clips = prioritized
+                if verbose:
+                    print(f"    [SELECTOR] Prioritizing {len(prioritized)} candidate clips")
 
         clips_summary = self._build_clips_summary(eligible_clips)
 
@@ -103,6 +111,20 @@ class FootageSelector:
                 return clip
 
         return None
+
+    def _prioritize_candidates(
+        self, clips: list[VideoClip], candidate_ids: list[str]
+    ) -> list[VideoClip]:
+        candidate_set = set(candidate_ids)
+        candidates = [c for c in clips if c.clip_id in candidate_set]
+
+        if not candidates:
+            return []
+
+        order_map = {cid: i for i, cid in enumerate(candidate_ids)}
+        candidates.sort(key=lambda c: order_map.get(c.clip_id, len(candidate_ids)))
+
+        return candidates
 
     def _build_clips_summary(self, clips: list[VideoClip]) -> str:
         summaries = []

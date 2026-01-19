@@ -192,6 +192,7 @@ class SequenceComposer:
                 or "",
                 query_tags=scene.visual_layer.query_tags,
                 min_duration=min_duration,
+                candidate_clip_ids=scene.visual_layer.candidate_clips or None,
                 verbose=self.verbose,
             )
         else:
@@ -341,6 +342,7 @@ class SequenceComposer:
             effects=effects,
             clip_start_time=visual_result.clip_start,
             clip_end_time=visual_result.clip_end,
+            video_fit_mode=scene.video_fit_mode.value,
         )
 
     def _resolve_lottie_overlays(self, scene: Scene) -> list[LottieOverlayAsset]:

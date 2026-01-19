@@ -4,6 +4,7 @@ from pathlib import Path
 from domains.planning.models import (
     AudioScript,
     FxBeat,
+    LottieOverlay,
     PreparedAssets,
     Scene,
     Scenario,
@@ -12,6 +13,7 @@ from domains.planning.models import (
     SyncMode,
     TextOverlay,
     TextStyle,
+    VideoFitMode,
     VideoType,
     VisualLayer,
     VisualType,
@@ -68,9 +70,11 @@ class ScenarioParser:
         audio_script = self._parse_audio(scene_data)
         visual_layer = self._parse_visual(scene_data)
         text_overlay = self._parse_text_overlay(scene_data)
+        lottie_overlays = self._parse_lottie_overlays(scene_data)
         sound_effects = self._parse_sound_effects(scene_data)
         fx_beat = self._parse_fx_beat(scene_data)
         sync_mode = self._parse_sync_mode(scene_data)
+        video_fit_mode = self._parse_video_fit_mode(scene_data)
         duration = scene_data.get("duration")
 
         prepared = self._parse_prepared(scene_data)
@@ -81,9 +85,11 @@ class ScenarioParser:
             audio_script=audio_script,
             visual_layer=visual_layer,
             text_overlay=text_overlay,
+            lottie_overlays=lottie_overlays,
             sound_effects=sound_effects,
             fx_beat=fx_beat,
             sync_mode=sync_mode,
+            video_fit_mode=video_fit_mode,
             duration=duration,
             selected_clip_id=scene_data.get("selected_clip_id"),
             prepared=prepared,
@@ -95,6 +101,13 @@ class ScenarioParser:
             return SyncMode(sync_mode_str)
         except ValueError:
             return SyncMode.AUDIO
+
+    def _parse_video_fit_mode(self, scene_data: dict) -> VideoFitMode:
+        video_fit_mode_str = scene_data.get("video_fit_mode", "freeze")
+        try:
+            return VideoFitMode(video_fit_mode_str)
+        except ValueError:
+            return VideoFitMode.FREEZE
 
     def _parse_audio(self, scene_data: dict) -> AudioScript:
         if "audio_script" in scene_data:
@@ -115,11 +128,15 @@ class ScenarioParser:
     def _parse_visual(self, scene_data: dict) -> VisualLayer:
         if "visual_layer" in scene_data:
             vl = scene_data["visual_layer"]
+            candidate_clips = vl.get("candidate_clips", [])
+            if candidate_clips:
+                candidate_clips = [c.strip("[]") for c in candidate_clips]
             return VisualLayer(
                 type=VisualType(vl.get("type", "existing_footage")),
                 query_tags=vl.get("query_tags", []),
                 prompt=vl.get("prompt"),
                 fallback_gen_prompt=vl.get("fallback_gen_prompt"),
+                candidate_clips=candidate_clips,
                 model=vl.get("model", "google_imagen_3"),
                 clip_offset=vl.get("clip_offset"),
                 gen_duration=vl.get("gen_duration"),
@@ -154,6 +171,34 @@ class ScenarioParser:
 
         return None
 
+    def _parse_lottie_overlays(self, scene_data: dict) -> list[LottieOverlay]:
+        if "lottie_overlays" not in scene_data:
+            return []
+
+        lottie_list = scene_data["lottie_overlays"]
+        if not isinstance(lottie_list, list):
+            return []
+
+        result = []
+        for lottie in lottie_list:
+            if isinstance(lottie, str):
+                if lottie:
+                    result.append(LottieOverlay(lottie_name=lottie))
+            elif isinstance(lottie, dict):
+                lottie_name = (
+                    lottie.get("lottie_name") or lottie.get("effect_id") or lottie.get("name")
+                )
+                if lottie_name:
+                    result.append(
+                        LottieOverlay(
+                            lottie_name=lottie_name,
+                            start_time=lottie.get("start_time", 0.0),
+                            position=lottie.get("position", "center"),
+                            scale=lottie.get("scale", 0.5),
+                        )
+                    )
+        return result
+
     def _parse_sound_effects(self, scene_data: dict) -> list[SoundEffect]:
         if "sound_effects" not in scene_data:
             return []
@@ -162,24 +207,32 @@ class ScenarioParser:
         if not isinstance(sfx_list, list):
             return []
 
-        return [
-            SoundEffect(
-                preset_name=sfx.get("preset_name", ""),
-                volume=sfx.get("volume", 0.5),
-                start_time=sfx.get("start_time", 0.0),
-                fade_in=sfx.get("fade_in", 0.0),
-                fade_out=sfx.get("fade_out", 0.0),
-            )
-            for sfx in sfx_list
-            if sfx.get("preset_name")
-        ]
+        result = []
+        for sfx in sfx_list:
+            if isinstance(sfx, str):
+                if sfx:
+                    result.append(SoundEffect(preset_name=sfx))
+            elif isinstance(sfx, dict) and sfx.get("preset_name"):
+                result.append(
+                    SoundEffect(
+                        preset_name=sfx.get("preset_name", ""),
+                        volume=sfx.get("volume", 0.5),
+                        start_time=sfx.get("start_time", 0.0),
+                        fade_in=sfx.get("fade_in", 0.0),
+                        fade_out=sfx.get("fade_out", 0.0),
+                    )
+                )
+        return result
 
     def _parse_fx_beat(self, scene_data: dict) -> FxBeat:
         if "fx_beat" in scene_data:
             fb = scene_data["fx_beat"]
+            transition = fb.get("transition_next", "cut")
+            if transition == "none":
+                transition = "cut"
             return FxBeat(
                 camera_movement=fb.get("camera_movement", "none"),
-                transition_next=fb.get("transition_next", "cut"),
+                transition_next=transition,
                 effect=fb.get("effect"),
                 beat_timing=fb.get("beat_timing", []),
             )

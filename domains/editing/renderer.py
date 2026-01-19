@@ -37,15 +37,15 @@ class FFmpegRenderer:
                     f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2[v0]"
                 )
             else:
-                if scene.clip_start_time is not None:
-                    trim_filter = f"trim=start={scene.clip_start_time}:duration={scene.duration},setpts=PTS-STARTPTS"
-                else:
-                    trim_filter = f"trim=duration={scene.duration}"
-                filter_complex.append(
-                    f"[0:v]{trim_filter},fps={fps},"
-                    f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
-                    f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2[v0]"
+                video_filter = self._build_video_fit_filter(
+                    scene.clip_start_time,
+                    scene.duration,
+                    fps,
+                    width,
+                    height,
+                    scene.video_fit_mode,
                 )
+                filter_complex.append(f"[0:v]{video_filter}[v0]")
         else:
             inputs.extend(
                 [
@@ -346,6 +346,44 @@ class FFmpegRenderer:
 
         concat_list.unlink()
         return output_path
+
+    def _build_video_fit_filter(
+        self,
+        clip_start_time: float | None,
+        duration: float,
+        fps: float,
+        width: int,
+        height: int,
+        video_fit_mode: str,
+    ) -> str:
+        scale_pad = (
+            f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
+            f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"
+        )
+
+        if clip_start_time is not None:
+            trim_base = f"trim=start={clip_start_time},setpts=PTS-STARTPTS"
+        else:
+            trim_base = "setpts=PTS-STARTPTS"
+
+        if video_fit_mode == "loop":
+            return (
+                f"{trim_base},fps={fps},{scale_pad},"
+                f"loop=loop=-1:size={int(duration * fps)}:start=0,"
+                f"trim=duration={duration},setpts=PTS-STARTPTS"
+            )
+        elif video_fit_mode == "speed":
+            return (
+                f"{trim_base},fps={fps},{scale_pad},"
+                f"setpts=PTS*({duration}/DURATION),fps={fps},"
+                f"trim=duration={duration}"
+            )
+        else:
+            return (
+                f"{trim_base},fps={fps},{scale_pad},"
+                f"tpad=stop_mode=clone:stop_duration={duration},"
+                f"trim=duration={duration}"
+            )
 
     def _get_overlay_position(
         self, position: str, scale: float, width: int, height: int

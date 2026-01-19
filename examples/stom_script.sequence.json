@@ -39,7 +39,9 @@
         "style_template": "bold_impact_white",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_white"
+        "style": "bold_impact_white",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "zoom_out_slow",
@@ -55,7 +57,9 @@
         "visual_clip_end": 7.0,
         "text_overlay_path": "assets/generated/text_overlays/text_77efac49.mov"
       },
-      "selected_clip_id": "야식(과자) 컷_clip_000"
+      "selected_clip_id": "야식(과자) 컷_clip_000",
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s02",
@@ -80,7 +84,9 @@
         "style_template": "bold_impact_red",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_red"
+        "style": "bold_impact_red",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -93,7 +99,9 @@
         "audio_duration": 6.6,
         "visual_path": "assets/generated/images/img_7536934f.png",
         "text_overlay_path": "assets/generated/text_overlays/text_cd9e86a1.mov"
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s03",
@@ -119,7 +127,9 @@
         "style_template": "subtitle_clean",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_white"
+        "style": "bold_impact_white",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -132,7 +142,9 @@
         "audio_duration": 7.014333,
         "visual_path": "assets/generated/images/img_d490f8e9.png",
         "text_overlay_path": "assets/generated/text_overlays/text_29b5e42c.mov"
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s04",
@@ -152,13 +164,6 @@
         ],
         "fallback_gen_prompt": "A woman pointing to her head suggesting 'think about it'"
       },
-      "text_overlay": {
-        "content": "문제는 소화가 아니라 '흡수'!",
-        "style_template": "bold_impact_white",
-        "animation": "fade_in",
-        "position": "bottom",
-        "style": "bold_impact_white"
-      },
       "fx_beat": {
         "camera_movement": "shake",
         "transition_next": "cut"
@@ -167,8 +172,21 @@
       "duration": null,
       "prepared": {
         "audio_path": "assets/generated/audio/s04_audio_1.00.wav",
-        "audio_duration": 5.72
-      }
+        "audio_duration": 5.72,
+        "visual_path": "assets/raw_footage/stom/코크_직장인_신지민_260107/안돼요 컷, 밥 반공기 컷, 화장실 오케이 컷, 디저트 간식 안먹어요 컷, 제형 섭취 컷, 제형 보여주기 컷,.mp4",
+        "visual_clip_start": 0.0,
+        "visual_clip_end": 13.0
+      },
+      "lottie_overlays": [
+        {
+          "lottie_name": "error",
+          "start_time": 0.0,
+          "position": "center",
+          "scale": 0.5
+        }
+      ],
+      "sound_effects": [],
+      "selected_clip_id": "안돼요 컷, 밥 반공기 컷, 화장실 오케이 컷, 디저트 간식 안먹어요 컷, 제형 섭취 컷, 제형 보여주기 컷,_clip_000"
     },
     {
       "scene_id": "s05",
@@ -193,7 +211,9 @@
         "style_template": "bold_impact_red",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_red"
+        "style": "bold_impact_red",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
@@ -204,7 +224,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s05_audio_1.00.wav",
         "audio_duration": 5.6
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s06",
@@ -231,7 +253,9 @@
         "style_template": "bold_impact_white",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_white"
+        "style": "bold_impact_white",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -243,7 +267,9 @@
         "audio_path": "assets/generated/audio/s06_audio_1.20.wav",
         "audio_duration": 6.234333,
         "visual_path": "assets/generated/videos/vid_f9bf448f.mp4"
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s07",
@@ -268,7 +294,9 @@
         "style_template": "subtitle_clean",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "subtitle_clean"
+        "style": "subtitle_clean",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -281,7 +309,9 @@
         "audio_duration": 7.0,
         "visual_path": "assets/generated/images/img_3e0f85a6.png",
         "text_overlay_path": "assets/generated/text_overlays/text_f30aebd5.mov"
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s08",
@@ -306,7 +336,9 @@
         "style_template": "bold_impact_white",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_white"
+        "style": "bold_impact_white",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
@@ -318,7 +350,9 @@
         "audio_path": "assets/generated/audio/s08_audio_1.00.wav",
         "audio_duration": 6.52,
         "visual_path": "assets/generated/images/img_d82caf52.png"
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s09",
@@ -343,7 +377,9 @@
         "style_template": "bold_impact_white",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_white"
+        "style": "bold_impact_white",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
@@ -355,7 +391,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s09_audio_1.00.wav",
         "audio_duration": 6.36
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s10",
@@ -380,7 +418,9 @@
         "style_template": "subtitle_clean",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "subtitle_clean"
+        "style": "subtitle_clean",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -391,7 +431,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s10_audio_1.00.wav",
         "audio_duration": 6.64
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s11",
@@ -416,7 +458,9 @@
         "style_template": "bold_impact_white",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_white"
+        "style": "bold_impact_white",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "zoom_out_slow",
@@ -427,7 +471,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s11_audio_1.00.wav",
         "audio_duration": 7.24
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s12",
@@ -452,7 +498,9 @@
         "style_template": "subtitle_clean",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "subtitle_clean"
+        "style": "subtitle_clean",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -463,7 +511,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s12_audio_1.00.wav",
         "audio_duration": 6.92
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s13",
@@ -488,7 +538,9 @@
         "style_template": "bold_impact_white",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_white"
+        "style": "bold_impact_white",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
@@ -500,7 +552,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s13_audio_1.00.wav",
         "audio_duration": 7.6
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s14",
@@ -525,7 +579,9 @@
         "style_template": "subtitle_clean",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "subtitle_clean"
+        "style": "subtitle_clean",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -537,7 +593,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s14_audio_1.00.wav",
         "audio_duration": 6.68
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s15",
@@ -562,7 +620,9 @@
         "style_template": "bold_impact_white",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_white"
+        "style": "bold_impact_white",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "shake",
@@ -574,7 +634,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s15_audio_1.00.wav",
         "audio_duration": 7.12
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s16",
@@ -599,7 +661,9 @@
         "style_template": "subtitle_clean",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "subtitle_clean"
+        "style": "subtitle_clean",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -611,7 +675,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s16_audio_1.00.wav",
         "audio_duration": 8.56
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s17",
@@ -636,7 +702,9 @@
         "style_template": "bold_impact_white",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_white"
+        "style": "bold_impact_white",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "zoom_in_slow",
@@ -648,7 +716,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s17_audio_1.00.wav",
         "audio_duration": 6.4
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     },
     {
       "scene_id": "s18",
@@ -673,7 +743,9 @@
         "style_template": "bold_impact_red",
         "animation": "fade_in",
         "position": "bottom",
-        "style": "bold_impact_red"
+        "style": "bold_impact_red",
+        "font_color": null,
+        "background_color": null
       },
       "fx_beat": {
         "camera_movement": "none",
@@ -685,7 +757,9 @@
       "prepared": {
         "audio_path": "assets/generated/audio/s18_audio_1.00.wav",
         "audio_duration": 5.64
-      }
+      },
+      "lottie_overlays": [],
+      "sound_effects": []
     }
   ]
 }

@@ -37,6 +37,7 @@ class ComposedScene(BaseModel):
     effects: dict = Field(default_factory=dict)
     clip_start_time: float | None = None
     clip_end_time: float | None = None
+    video_fit_mode: str = "freeze"
 
 
 class Timeline(BaseModel):

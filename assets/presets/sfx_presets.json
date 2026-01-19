@@ -1,26 +1,32 @@
 {
-  "success": {
-    "description": "긍정적 피드백, 완료, 성공 시 사용하는 딩 소리",
+  "success_1": {
+    "file_path": "assets/stock/sfx/success_1.mp3",
+    "description": "긍정적 피드백, 완료, 성공 시 사용하는 디리링 소리, 밝은 톤",
     "use_case": "결제 완료, 목표 달성, 긍정적 결과 강조"
   },
-  "error": {
-    "description": "오류, 실패, 경고 시 사용하는 비프음",
+  "success_2": {
+    "file_path": "assets/stock/sfx/success_2.wav",
+    "description": "긍정적 피드백, 완료, 성공 시 사용하는 디리링 소리, 다소 무거운 톤",
+    "use_case": "결제 완료, 목표 달성, 긍정적 결과 강조"
+  },
+  "error_1": {
+    "file_path": "assets/stock/sfx/error_1.wav",
+    "description": "오류, 실패, 경고 시 사용하는 비프음, 다소 무거운 톤 심각하진 않음",
     "use_case": "실패 상황, 잘못된 선택, 부정적 결과"
   },
-  "warning": {
-    "description": "주의, 알림 시 사용하는 알림음",
-    "use_case": "중요 정보 강조, 주의 환기"
+  "error_2": {
+    "file_path": "assets/stock/sfx/error_2.wav",
+    "description": "굉장히 심각한 톤의 오류 비프음",
+    "use_case": "실패 상황, 잘못된 선택, 부정적 결과"
   },
-  "loading": {
-    "description": "로딩, 대기 중 사용하는 틱 소리",
-    "use_case": "진행 중 상태, 기다림 표현"
+  "error_3": {
+    "file_path": "assets/stock/sfx/error_3.wav",
+    "description": "가벼운 톤의 오류 비프음, 심각하지 않은 상황, 한번의 띵",
+    "use_case": "실패 상황, 잘못된 선택, 부정적 결과"
   },
-  "whoosh": {
-    "description": "빠른 전환, 스와이프 효과음",
-    "use_case": "장면 전환, 빠른 움직임 강조"
-  },
-  "click": {
-    "description": "클릭, 선택 시 사용하는 클릭음",
-    "use_case": "버튼 클릭, UI 인터랙션"
+  "error_4": {
+    "file_path": "assets/stock/sfx/error_4.wav",
+    "description": "가벼운 톤의 오류 비프음, 심각하지 않은 상황, 두번의 띠딩",
+    "use_case": "실패 상황, 잘못된 선택, 부정적 결과"
   }
 }
