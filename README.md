@@ -44,6 +44,74 @@ uv run python main.py render sequence.json -o output.mp4 -v
 uv run python main.py render examples/sample_sequence.json -o output.mp4
 ```
 
+### Sequencing Strategies
+
+The sequence generator supports multiple strategies for creating video sequences. Each strategy offers a different approach to utilizing available footage.
+
+```bash
+# Default: Script-driven, ignores footage library
+uv run python main.py sequence script.txt -o seq.json -v
+
+# Footage-Aware: Considers existing footage while following the script
+uv run python main.py sequence script.txt -o seq.json --strategy footage_aware -v
+
+# Appeal-First: Analyzes footage appeal points first, then builds narrative (2-step)
+uv run python main.py sequence script.txt -o seq.json --strategy appeal_first -v
+
+# Control scene count (default: 10)
+uv run python main.py sequence script.txt --strategy appeal_first --scene-count 8 -v
+```
+
+#### Strategy Comparison
+
+| Strategy | Approach | Best For |
+|----------|----------|----------|
+| `default` | Script-driven, footage-agnostic | AI-generated content, no existing footage |
+| `footage_aware` | Script-driven with footage recommendations | Matching script to available UGC |
+| `appeal_first` | Footage-driven, 2-step generation | Maximizing impact of existing UGC |
+
+#### How Each Strategy Works
+
+**`default`**
+- Single LLM call
+- Generates sequence purely from script content
+- No awareness of footage library
+
+**`footage_aware`**
+- Single LLM call
+- Injects footage catalog + product context into prompt
+- Recommends `candidate_clips` for each scene based on script requirements
+- Output includes clip IDs that best match each scene
+
+**`appeal_first`** (Multi-step)
+1. **Step 1 - Appeal Analysis**: Analyzes footage catalog to identify high-impact clips and their marketing appeal
+2. **Step 2 - Sequence Generation**: Uses the content strategy from Step 1 to build a narrative that showcases the best footage
+
+```
+Footage Catalog → Content Strategy → Sequence JSON
+     ↓                   ↓                ↓
+ (appeal points)    (narrative arc)   (candidate_clips)
+```
+
+#### Output: candidate_clips
+
+When using `footage_aware` or `appeal_first`, scenes include `candidate_clips`:
+
+```json
+{
+  "scene_id": "s01",
+  "visual_layer": {
+    "type": "existing_footage",
+    "prompt": "Woman checking bloated belly in mirror",
+    "candidate_clips": ["비포 컷_clip_000", "비포컷_직장인_clip_001"],
+    "query_tags": ["bloating", "body concern"],
+    "fallback_gen_prompt": "..."
+  }
+}
+```
+
+During rendering, the `FootageSelector` prioritizes these candidate clips when selecting footage for each scene.
+
 ### Index Raw Footage
 
 ```bash
@@ -233,6 +301,62 @@ uv run python scripts/test_sequence.py examples/script.txt -v
 uv run python scripts/test_sequence.py "첫 번째 장면: 제품 클로즈업. 두 번째 장면: 사용 후기" -v
 ```
 
+#### Adding New Sequencing Strategies
+
+To add a custom strategy:
+
+1. Create a new file in `domains/sequencing/strategies/`:
+
+```python
+# domains/sequencing/strategies/my_strategy.py
+from typing import Any
+from domains.sequencing.strategies.base import SequencingStrategy
+
+class MyStrategy(SequencingStrategy):
+    @property
+    def name(self) -> str:
+        return "my_strategy"
+
+    @property
+    def is_multi_step(self) -> bool:
+        return False  # Set True for multi-step strategies
+
+    def build_prompt(
+        self,
+        script: str,
+        product_context: str | None = None,
+        footage_catalog: str | None = None,
+        lottie_presets_section: str = "",
+        sfx_presets_section: str = "",
+        scene_count: int = 10,
+        step_context: dict[str, Any] | None = None,
+    ) -> str:
+        # Build your custom prompt here
+        return f"Your prompt with {script}, {footage_catalog}, etc."
+```
+
+2. Register in `domains/sequencing/strategies/__init__.py`:
+
+```python
+from domains.sequencing.strategies.my_strategy import MyStrategy
+
+STRATEGIES = {
+    "default": DefaultStrategy,
+    "footage_aware": FootageAwareStrategy,
+    "appeal_first": AppealFirstStrategy,
+    "my_strategy": MyStrategy,  # Add here
+}
+```
+
+3. Update CLI choices in `main.py` (optional, for tab completion):
+
+```python
+sequence_parser.add_argument(
+    "--strategy",
+    choices=["default", "footage_aware", "appeal_first", "my_strategy"],
+)
+```
+
 ### Lottie Overlay
 
 Lottie animations (checkmark, error, warning, etc.) are pre-rendered to ProRes 4444 MOV files with alpha channel for efficient runtime use.
@@ -339,8 +463,16 @@ After syncing, edit the JSON files to add meaningful descriptions for new preset
 ```
 domains/
 ├── sequencing/  # Script → Sequence JSON (Gemini 3 Flash)
+│   ├── generator.py           # SequenceGenerator with strategy support
+│   └── strategies/            # Pluggable sequencing strategies
+│       ├── base.py            # SequencingStrategy ABC
+│       ├── default.py         # Script-driven (no footage awareness)
+│       ├── footage_aware.py   # Script + footage catalog integration
+│       └── appeal_first.py    # 2-step: appeal analysis → sequence
 ├── planning/    # Sequence JSON parsing
 ├── library/     # Video asset indexing & search (Gemini 3 Flash)
+│   ├── catalog.py             # FootageCatalog for LLM-friendly summaries
+│   └── ...
 ├── studio/      # Content generation
 │   ├── tts_generator.py       # Google Cloud TTS (Chirp v3)
 │   ├── image_generator.py     # Gemini 3 Pro Image

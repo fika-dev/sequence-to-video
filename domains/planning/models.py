@@ -73,6 +73,7 @@ class VisualLayer(BaseModel):
     query_tags: list[str] = Field(default_factory=list)
     prompt: str | None = None
     fallback_gen_prompt: str | None = None
+    candidate_clips: list[str] = Field(default_factory=list)
     model: str = "google_imagen_3"
     clip_offset: float | None = None
     gen_duration: int | None = Field(

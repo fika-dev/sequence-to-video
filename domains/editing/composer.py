@@ -192,6 +192,7 @@ class SequenceComposer:
                 or "",
                 query_tags=scene.visual_layer.query_tags,
                 min_duration=min_duration,
+                candidate_clip_ids=scene.visual_layer.candidate_clips or None,
                 verbose=self.verbose,
             )
         else:

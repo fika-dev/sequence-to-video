@@ -400,6 +400,8 @@ def generate_sequence(
     script_path: str,
     config: Config | None = None,
     output_path: str | None = None,
+    strategy: str = "default",
+    scene_count: int = 10,
     verbose: bool = False,
 ) -> Path:
     if config is None:
@@ -409,6 +411,8 @@ def generate_sequence(
         project=config.api.google_project_id,
         location="global",
         model="gemini-3-flash-preview",
+        strategy=strategy,
+        scene_count=scene_count,
     )
 
     script_file = Path(script_path)
@@ -533,6 +537,18 @@ def main():
     sequence_parser = subparsers.add_parser("sequence", help="Generate sequence JSON from script")
     sequence_parser.add_argument("script", help="Path to script/scenario text file")
     sequence_parser.add_argument("-o", "--output", help="Output JSON path")
+    sequence_parser.add_argument(
+        "--strategy",
+        default="default",
+        choices=["default", "footage_aware", "appeal_first"],
+        help="Sequencing strategy (default: default)",
+    )
+    sequence_parser.add_argument(
+        "--scene-count",
+        type=int,
+        default=10,
+        help="Target number of scenes (default: 10)",
+    )
     sequence_parser.add_argument("--env", help="Path to .env file")
     sequence_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
@@ -602,6 +618,8 @@ def main():
             script_path=args.script,
             config=config,
             output_path=args.output,
+            strategy=args.strategy,
+            scene_count=args.scene_count,
             verbose=args.verbose,
         )
     elif args.command == "rerender-scene":
