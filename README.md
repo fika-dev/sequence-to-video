@@ -24,9 +24,20 @@ cp .env.example .env
 ```
 
 Required environment variables:
+
 ```
 GOOGLE_PROJECT_ID=your-project-id
 GCS_BUCKET=your-gcs-bucket
+GEMINI_API_KEY=your-gemini-api-key  # Required for content_engine (or use GOOGLE_API_KEY as fallback)
+```
+
+Optional environment variables (for content_engine):
+
+```
+YOUTUBE_API_KEY=your-youtube-api-key  # For YouTube transcript fetching
+AWS_ACCESS_KEY_ID=your-aws-key  # For S3 trends (optional)
+AWS_SECRET_ACCESS_KEY=your-aws-secret  # For S3 trends (optional)
+AWS_REGION=us-east-1  # For S3 trends (optional)
 ```
 
 ## Usage
@@ -34,10 +45,12 @@ GCS_BUCKET=your-gcs-bucket
 ### Full Pipeline
 
 ```bash
-# 1. Generate sequence from script
-uv run python main.py sequence examples/script.txt -o sequence.json -v
+# Option 1: Generate from topic (using content_engine)
+uv run python main.py generate "Your Topic" --persona "target audience" -o sequence.json -v
+uv run python main.py render sequence.json -o output.mp4 -v
 
-# 2. Render video from sequence
+# Option 2: Generate sequence from script
+uv run python main.py sequence examples/script.txt -o sequence.json -v
 uv run python main.py render sequence.json -o output.mp4 -v
 
 # Or directly from existing sequence JSON
@@ -60,30 +73,40 @@ uv run python main.py sequence script.txt -o seq.json --strategy appeal_first -v
 
 # Control scene count (default: 10)
 uv run python main.py sequence script.txt --strategy appeal_first --scene-count 8 -v
+
+# Content Engine: Generate from topic (no script needed)
+uv run python main.py generate "XXX" --persona "XXX" -o sequence.json -v
+
+# Content Engine with target duration
+uv run python main.py generate "XXX" --persona "XXX" --target-duration 60 -o sequence.json -v
 ```
 
 #### Strategy Comparison
 
-| Strategy | Approach | Best For |
-|----------|----------|----------|
-| `default` | Script-driven, footage-agnostic | AI-generated content, no existing footage |
-| `footage_aware` | Script-driven with footage recommendations | Matching script to available UGC |
-| `appeal_first` | Footage-driven, 2-step generation | Maximizing impact of existing UGC |
+| Strategy         | Approach                                         | Best For                                  |
+| ---------------- | ------------------------------------------------ | ----------------------------------------- |
+| `default`        | Script-driven, footage-agnostic                  | AI-generated content, no existing footage |
+| `footage_aware`  | Script-driven with footage recommendations       | Matching script to available UGC          |
+| `appeal_first`   | Footage-driven, 2-step generation                | Maximizing impact of existing UGC         |
+| `content_engine` | AI-generated script + visual planning from topic | Topic-based generation, no script needed  |
 
 #### How Each Strategy Works
 
 **`default`**
+
 - Single LLM call
 - Generates sequence purely from script content
 - No awareness of footage library
 
 **`footage_aware`**
+
 - Single LLM call
 - Injects footage catalog + product context into prompt
 - Recommends `candidate_clips` for each scene based on script requirements
 - Output includes clip IDs that best match each scene
 
 **`appeal_first`** (Multi-step)
+
 1. **Step 1 - Appeal Analysis**: Analyzes footage catalog to identify high-impact clips and their marketing appeal
 2. **Step 2 - Sequence Generation**: Uses the content strategy from Step 1 to build a narrative that showcases the best footage
 
@@ -91,6 +114,23 @@ uv run python main.py sequence script.txt --strategy appeal_first --scene-count 
 Footage Catalog → Content Strategy → Sequence JSON
      ↓                   ↓                ↓
  (appeal points)    (narrative arc)   (candidate_clips)
+```
+
+**`content_engine`** (AI-driven script generation)
+
+1. **Query Generation**: Creates search queries for research
+2. **Data Fetching**: Gathers content from YouTube, Google Search, S3
+3. **Script Assembly**: Builds script from research data with XML tags
+4. **Script Polishing**: Refines script for human-like tone
+5. **Visual Planning**: Creates scene-by-scene visual outlay
+6. **Direction Injection**: Adds directing/visual instructions
+7. **Sequence Generation**: Converts to sequence JSON format
+
+```
+Topic → Content Engine → Script + Visual Outlay → Sequence JSON
+  ↓            ↓                    ↓                    ↓
+(persona)  (research)        (polished_script)    (scenes with
+                                                visual prompts)
 ```
 
 #### Output: candidate_clips
@@ -136,11 +176,13 @@ uv run python main.py index --force -v
 When using `--type product_ugc`, provide product context via:
 
 1. **`--context` flag** (explicit path):
+
 ```bash
 uv run python main.py index --type product_ugc --context products/serum_info.txt -v
 ```
 
 2. **Auto-detection** (place in footage folder):
+
 ```
 assets/raw_footage/
 ├── my_product/
@@ -152,6 +194,7 @@ assets/raw_footage/
 Auto-detected filenames (checked in order): `context.txt`, `product.txt`, `info.txt`
 
 **context.txt example:**
+
 ```
 Product: VitaC Brightening Serum
 Category: Skincare / Serum
@@ -162,6 +205,7 @@ USP: Fast absorption, non-sticky texture
 ```
 
 The analyzer uses this context to:
+
 - Generate product-relevant tags and descriptions
 - Identify appeal points specific to the product's benefits
 - Better match clips to scene requirements during rendering
@@ -179,6 +223,7 @@ uv run python main.py reassemble sequence.json -o output_v2.mp4 -v
 ```
 
 Workflow example:
+
 ```bash
 # 1. Initial render (scenes saved individually)
 uv run python main.py render sequence.json -o output.mp4 -v
@@ -229,6 +274,7 @@ uv run python main.py embed -v
 ```
 
 Use this when:
+
 - You updated the embedding model
 - Embeddings were missing from older indexes
 - You want to refresh embeddings without full re-indexing
@@ -391,8 +437,13 @@ Available presets: `success`, `error`, `warning`, `loading`, `whoosh`, `click`
     {
       "scene_id": "s01",
       "sound_effects": [
-        {"preset_name": "success", "volume": 0.5, "start_time": 0.5},
-        {"preset_name": "whoosh", "volume": 0.3, "start_time": 1.0, "fade_out": 0.2}
+        { "preset_name": "success", "volume": 0.5, "start_time": 0.5 },
+        {
+          "preset_name": "whoosh",
+          "volume": 0.3,
+          "start_time": 1.0,
+          "fade_out": 0.2
+        }
       ]
     }
   ]
@@ -400,6 +451,7 @@ Available presets: `success`, `error`, `warning`, `loading`, `whoosh`, `click`
 ```
 
 SFX options:
+
 - `preset_name`: Sound effect preset name (required)
 - `volume`: Volume level 0.0-1.0 (default: 0.5)
 - `start_time`: Start time in seconds (default: 0.0)
@@ -436,6 +488,7 @@ assets/presets/
 ```
 
 Each preset includes:
+
 - `description`: What the preset is (shown to LLM during sequence generation)
 - `use_case`: When to use it (helps LLM make appropriate selections)
 
@@ -452,6 +505,7 @@ uv run python scripts/update_presets.py
 ```
 
 The script will:
+
 - Add new presets with placeholder descriptions (edit manually)
 - Remove presets that no longer exist in providers
 - Preserve existing descriptions for unchanged presets
@@ -518,15 +572,15 @@ assets/
 
 ## Model Configuration
 
-| Purpose | Model | Location |
-|---------|-------|----------|
-| Sequence Generation | gemini-3-flash-preview | global |
-| Video Analysis | gemini-3-flash-preview | global |
-| Footage Selection | gemini-2.0-flash | global |
-| Embedding | text-embedding-005 | global |
-| Image Generation | gemini-3-pro-image-preview | global |
-| Video Generation | veo-3.1-generate-preview | us-central1 (required) |
-| TTS | Chirp3-HD (ko-KR) | - |
+| Purpose             | Model                      | Location               |
+| ------------------- | -------------------------- | ---------------------- |
+| Sequence Generation | gemini-3-flash-preview     | global                 |
+| Video Analysis      | gemini-3-flash-preview     | global                 |
+| Footage Selection   | gemini-2.0-flash           | global                 |
+| Embedding           | text-embedding-005         | global                 |
+| Image Generation    | gemini-3-pro-image-preview | global                 |
+| Video Generation    | veo-3.1-generate-preview   | us-central1 (required) |
+| TTS                 | Chirp3-HD (ko-KR)          | -                      |
 
 ## Footage Selection
 
@@ -535,6 +589,7 @@ When rendering with existing footage (`video_type: ugc_centered` or `mixed`), th
 ### Stage 1: Embedding-Based Search
 
 Clips are pre-filtered using semantic similarity:
+
 - Each clip has an embedding generated from its description, appeal points, and tags
 - Scene requirements (narration + visual prompt + query tags) are embedded as a query
 - Top candidates are retrieved using cosine similarity
@@ -542,6 +597,7 @@ Clips are pre-filtered using semantic similarity:
 ### Stage 2: LLM-Based Selection
 
 The LLM evaluates the top candidates and selects the best match:
+
 1. **Indexing**: Footage is analyzed and tagged with descriptions, appeal points, content types
 2. **Selection**: For each scene, LLM evaluates candidate clips against scene requirements (narration, visual prompt, tags)
 3. **Fallback**: If no suitable clip found, falls back to AI image generation
@@ -562,6 +618,7 @@ uv run python main.py render input.json -o output.mp4 --no-cache
 Generation metadata (prompts, parameters) is saved in `assets/generated/.metadata/` for each generated asset.
 
 Composition metadata is saved alongside output videos as `{output}.meta.json`, containing:
+
 - Project settings (resolution, fps, total duration)
 - Per-scene details (sources, effects, rendered file paths)
 - Creation timestamp

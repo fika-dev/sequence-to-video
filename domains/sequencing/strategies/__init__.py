@@ -1,5 +1,6 @@
 from domains.sequencing.strategies.appeal_first import AppealFirstStrategy
 from domains.sequencing.strategies.base import SequencingStrategy
+from domains.sequencing.strategies.content_engine import ContentEngineStrategy
 from domains.sequencing.strategies.default import DefaultStrategy
 from domains.sequencing.strategies.footage_aware import FootageAwareStrategy
 
@@ -7,6 +8,7 @@ STRATEGIES: dict[str, type[SequencingStrategy]] = {
     "default": DefaultStrategy,
     "footage_aware": FootageAwareStrategy,
     "appeal_first": AppealFirstStrategy,
+    "content_engine": ContentEngineStrategy,
 }
 
 
@@ -22,6 +24,7 @@ __all__ = [
     "DefaultStrategy",
     "FootageAwareStrategy",
     "AppealFirstStrategy",
+    "ContentEngineStrategy",
     "STRATEGIES",
     "load_strategy",
 ]

@@ -396,6 +396,52 @@ def index_single_file(
             print(f"      Appeal: {clip.appeal_point[:50]}...")
 
 
+def generate_from_topic(
+    topic: str,
+    config: Config | None = None,
+    output_path: str | None = None,
+    persona: str = "general",
+    additional_text: str | None = None,
+    target_duration_seconds: int | None = None,
+    scene_count: int = 10,
+    verbose: bool = False,
+) -> Path:
+    """Generate sequence from topic using content_engine."""
+    if config is None:
+        config = load_config()
+
+    generator = SequenceGenerator(
+        project=config.api.google_project_id,
+        location="global",
+        model="gemini-3-flash-preview",
+        strategy="content_engine",
+        scene_count=scene_count,
+    )
+
+    output_file = Path(output_path) if output_path else Path(f"{topic.replace(' ', '_').replace('/', '_')}.sequence.json")
+
+    import asyncio
+    sequence_data, metadata = asyncio.run(
+        generator.generate_from_topic(
+            topic=topic,
+            persona=persona,
+            additional_text=additional_text,
+            target_duration_seconds=target_duration_seconds,
+            output_path=output_file,
+            verbose=verbose,
+        )
+    )
+
+    print(f"\nSequence generated:")
+    print(f"  Locale: {metadata.locale}")
+    print(f"  Context: {metadata.context}")
+    print(f"  Title: {metadata.title}")
+    print(f"  Scenes: {len(sequence_data.get('scenes', []))}")
+    print(f"  Saved to: {output_file}")
+
+    return output_file
+
+
 def generate_sequence(
     script_path: str,
     config: Config | None = None,
@@ -540,7 +586,7 @@ def main():
     sequence_parser.add_argument(
         "--strategy",
         default="default",
-        choices=["default", "footage_aware", "appeal_first"],
+        choices=["default", "footage_aware", "appeal_first", "content_engine"],
         help="Sequencing strategy (default: default)",
     )
     sequence_parser.add_argument(
@@ -582,6 +628,38 @@ def main():
     viewer_parser.add_argument(
         "--port", type=int, default=8765, help="Port to bind (default: 8765)"
     )
+
+    generate_parser = subparsers.add_parser(
+        "generate", help="Generate sequence from topic using content_engine"
+    )
+    generate_parser.add_argument("topic", help="Topic for video content")
+    generate_parser.add_argument(
+        "--persona",
+        default="general",
+        help="Target persona (default: general)",
+    )
+    generate_parser.add_argument(
+        "--additional-text",
+        dest="additional_text",
+        help="Additional context text",
+    )
+    generate_parser.add_argument(
+        "--target-duration",
+        type=int,
+        dest="target_duration_seconds",
+        help="Target duration in seconds",
+    )
+    generate_parser.add_argument(
+        "-o", "--output", help="Output JSON path"
+    )
+    generate_parser.add_argument(
+        "--scene-count",
+        type=int,
+        default=10,
+        help="Target number of scenes (default: 10)",
+    )
+    generate_parser.add_argument("--env", help="Path to .env file")
+    generate_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
     args = parser.parse_args()
 
@@ -647,6 +725,18 @@ def main():
         from viewer.server import run_viewer
 
         run_viewer(sequence_path=args.input, host=args.host, port=args.port)
+    elif args.command == "generate":
+        config = load_config(args.env)
+        generate_from_topic(
+            topic=args.topic,
+            config=config,
+            output_path=args.output,
+            persona=args.persona,
+            additional_text=args.additional_text,
+            target_duration_seconds=args.target_duration_seconds,
+            scene_count=args.scene_count,
+            verbose=args.verbose,
+        )
     else:
         parser.print_help()
         sys.exit(1)

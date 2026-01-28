@@ -209,6 +209,113 @@ class SequenceGenerator:
 
         return self.generate_from_script(script, output_path, verbose)
 
+    async def generate_from_topic(
+        self,
+        topic: str,
+        persona: str = "general",
+        additional_text: str | None = None,
+        target_duration_seconds: int | None = None,
+        output_path: Path | None = None,
+        verbose: bool = False,
+    ) -> tuple[dict, SequenceMetadata]:
+        """
+        Generate sequence from topic using content_engine.
+        
+        This method:
+        1. Uses content_engine to generate script and visual outlay
+        2. Converts content_plan to sequence JSON using content_engine strategy
+        
+        Args:
+            topic: Topic for video content
+            persona: Target audience persona
+            additional_text: Additional context text
+            target_duration_seconds: Target video duration
+            output_path: Path to save sequence JSON
+            verbose: Enable verbose output
+            
+        Returns:
+            Tuple of (sequence_data, metadata)
+        """
+        if self.strategy.name != "content_engine":
+            raise ValueError(
+                f"generate_from_topic requires content_engine strategy, "
+                f"but current strategy is: {self.strategy.name}"
+            )
+        
+        if verbose:
+            print("Generating content plan from topic...")
+            print(f"  Topic: {topic}")
+            print(f"  Persona: {persona}")
+        
+        # Import here to avoid circular dependencies
+        from domains.content.orchestrator import ContentEngineOrchestrator
+        from domains.content.domain.schema_input import UserRequest
+        from domains.content.adapter import ContentPlanAdapter
+        
+        # Step 1: Generate content plan
+        orchestrator = ContentEngineOrchestrator()
+        user_request = UserRequest(
+            topic=topic,
+            persona=persona,
+            additional_text=additional_text,
+            target_duration_seconds=target_duration_seconds,
+        )
+        
+        content_plan = await orchestrator.generate_content_plan(user_request)
+        
+        if verbose:
+            print(f"  Generated script: {len(content_plan.polished_script)} chars")
+            print(f"  Visual scenes: {content_plan.visual_outlay.total_scenes if content_plan.visual_outlay else 0}")
+            print(f"  Directions: {len(content_plan.directions)}")
+        
+        # Step 2: Convert to sequence input format
+        adapter = ContentPlanAdapter()
+        content_plan_dict = adapter.to_sequence_input(content_plan)
+        
+        # Step 3: Generate sequence using content_engine strategy
+        catalog = self._load_footage_catalog()
+        footage_catalog_text = catalog.to_prompt_format() if catalog else None
+        product_context = catalog.get_product_context() if catalog else None
+        
+        prompt = self.strategy.build_prompt(
+            script=content_plan.polished_script,
+            product_context=product_context,
+            footage_catalog=footage_catalog_text,
+            lottie_presets_section=_format_lottie_presets_section(),
+            sfx_presets_section=_format_sfx_presets_section(),
+            scene_count=self.scene_count,
+            content_plan=content_plan_dict,  # Pass content plan to strategy
+        )
+        
+        if verbose:
+            print("  Generating sequence from content plan...")
+        
+        response_text = self._call_llm(prompt)
+        sequence_data = self._parse_response(response_text)
+        
+        # Step 4: Parse metadata
+        metadata = SequenceMetadata(
+            locale=sequence_data.get("metadata", {}).get("locale", "en-US"),
+            context=sequence_data.get("metadata", {}).get("context", ""),
+            title=sequence_data.get("metadata", {}).get("title", content_plan.topic),
+        )
+        
+        if verbose:
+            print(f"  Detected locale: {metadata.locale}")
+            print(f"  Detected context: {metadata.context}")
+            print(f"  Scenes: {len(sequence_data.get('scenes', []))}")
+        
+        # Step 5: Save if output path provided
+        if output_path:
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(sequence_data, f, ensure_ascii=False, indent=2)
+            if verbose:
+                print(f"  Saved to: {output_path}")
+        
+        return sequence_data, metadata
+
     def _parse_response(self, response_text: str) -> dict:
         text = response_text.strip()
         if text.startswith("```json"):
