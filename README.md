@@ -6,7 +6,7 @@ DDD-based video generation pipeline from sequence planning data.
 
 - **Sequencing Domain**: Generate sequence JSON from scripts using Gemini
 - **Planning Domain**: Parse sequence JSON into structured scenarios
-- **Library Domain**: Index and search existing video footage using Gemini
+- **Library Domain**: Index and search video footage, manage and analyze reference ads
 - **Studio Domain**: Generate TTS (Chirp v3), images (Gemini 3 Pro), videos (Veo 3.1), text animations, Lottie overlays, sound effects
 - **Editing Domain**: Compose final video with FFmpeg, apply effects and transitions
 
@@ -69,6 +69,7 @@ uv run python main.py sequence script.txt --strategy appeal_first --scene-count 
 | `default` | Script-driven, footage-agnostic | AI-generated content, no existing footage |
 | `footage_aware` | Script-driven with footage recommendations | Matching script to available UGC |
 | `appeal_first` | Footage-driven, 2-step generation | Maximizing impact of existing UGC |
+| `reference_guided` | Reference ads + UGC, 3-step generation | Following proven ad structures with available footage |
 
 #### How Each Strategy Works
 
@@ -111,6 +112,28 @@ When using `footage_aware` or `appeal_first`, scenes include `candidate_clips`:
 ```
 
 During rendering, the `FootageSelector` prioritizes these candidate clips when selecting footage for each scene.
+
+**`reference_guided`** (Multi-step, Reference + UGC)
+
+Uses analyzed reference ads to guide sequence structure while utilizing available UGC footage:
+
+1. **Step 1 - Blueprint**: Finds similar reference ads, extracts framework/pacing/patterns, creates beat plan
+2. **Step 2 - Casting**: Maps each beat to available UGC clips via embedding search + LLM selection
+3. **Step 3 - Sequence**: Generates final sequence JSON with candidate_clips and style rules
+
+```
+Reference Ads → Blueprint → Beat Casting → Sequence JSON
+     ↓              ↓            ↓              ↓
+ (structure)    (beat plan)  (clip matches) (final output)
+```
+
+Prerequisites:
+- Analyzed reference ads in `assets/reference_index/` (use `analyze_references.py`)
+- Indexed UGC footage in `assets/library_index/`
+
+```bash
+uv run python main.py sequence script.txt --strategy reference_guided -v
+```
 
 ### Index Raw Footage
 
@@ -165,6 +188,151 @@ The analyzer uses this context to:
 - Generate product-relevant tags and descriptions
 - Identify appeal points specific to the product's benefits
 - Better match clips to scene requirements during rendering
+
+### Reference Ads Management
+
+Download, organize, and analyze competitor/reference ads from Facebook Ads Library or YouTube to inform sequence generation.
+
+#### Prerequisites
+
+Install the patched yt-dlp with Facebook challenge bypass:
+
+```bash
+pipx install "git+https://github.com/legraphista/yt-dlp.git@fix/15577-facebook-ads-extractor-callenge" --suffix="-fb"
+```
+
+#### Step 1: Download Reference Ads
+
+Create a links file with ad URLs (one per line), then download as a collection:
+
+```bash
+# Create links file
+cat > fb_links.txt << 'EOF'
+https://www.facebook.com/ads/library/?id=2015764748993699
+https://www.facebook.com/ads/library/?id=719057414376082
+# Comments are supported
+https://www.facebook.com/ads/library/?id=312304267031140
+EOF
+
+# Download all ads into a collection
+uv run python main.py reference-download fb_links.txt \
+  --title "Supplement Ads Q1" \
+  --domain "ads/supplements" \
+  -v
+
+# Options
+uv run python main.py reference-download fb_links.txt \
+  --title "Campaign Name" \
+  --domain "ads/cosmetics" \
+  --source youtube \        # facebook (default) or youtube
+  --tags "korean" "ugc" \   # Optional tags
+  -v
+```
+
+#### Step 2: Analyze Reference Ads
+
+Analyze a collection using Gemini to extract narrative structure, pacing, hooks, and reusable patterns:
+
+```bash
+# Analyze by collection title, ID, or slug
+uv run python main.py reference-analyze "Supplement Ads Q1" -v
+
+# Force re-analyze already analyzed items
+uv run python main.py reference-analyze "Supplement Ads Q1" --force -v
+```
+
+#### Step 3: List and Manage Collections
+
+```bash
+# List all collections
+uv run python main.py reference-list
+
+# Filter by domain
+uv run python main.py reference-list --domain "ads/supplements"
+uv run python main.py reference-list --domain "ads/*"  # All ads domains
+
+# Sync to GCS (backup/team sharing)
+uv run python main.py reference-sync --push -v
+
+# Migrate legacy structure (if upgrading from old format)
+uv run python main.py reference-migrate --dry-run -v
+uv run python main.py reference-migrate -v
+```
+
+#### Directory Structure
+
+```
+assets/references/
+├── index.json                    # Collection summaries
+├── .gcs_state.json               # Sync state (gitignored)
+└── collections/
+    └── supplement_ads_q1/        # Collection slug
+        ├── collection.json       # Collection metadata
+        ├── source_links.txt      # Original links
+        └── items/
+            └── fb_2015764748993699/  # {source}_{source_id}
+                ├── item.json         # Item metadata
+                ├── video.mp4
+                ├── thumbnail.jpg
+                ├── source_meta.json  # Platform metadata
+                ├── analysis.json     # Gemini analysis
+                ├── fingerprint.npy   # Ad-level embedding
+                └── b01.npy, b02.npy  # Beat embeddings
+```
+
+#### Analysis Schema
+
+Each reference ad is analyzed for:
+
+| Field | Description |
+|-------|-------------|
+| `framework` | Ad structure (hook_body_cta, aida, pas, etc.) |
+| `one_sentence_positioning` | Core message of the ad |
+| `target_audience` | Who the ad targets |
+| `core_pain_point` | Problem being addressed |
+| `core_promise` | Solution/benefit offered |
+| `pacing` | cuts_per_minute, hook_duration, first_cta_time |
+| `beats` | 2-6 second segments with narrative_role, visual_summary, on_screen_text |
+| `reusable_patterns` | Rules for generating similar ads |
+| `style_guide` | tone, text_overlay_style, music_mood |
+
+**Example analysis output:**
+```json
+{
+  "framework": "hook_body_cta",
+  "one_sentence_positioning": "Fiber supplement that resolves fatigue",
+  "pacing": {
+    "hook_duration": 3.2,
+    "first_product_reveal_time": 3.9,
+    "first_cta_time": 13.0
+  },
+  "beats": [
+    {
+      "beat_id": "b01",
+      "narrative_role": "hook",
+      "hook_technique": "question",
+      "on_screen_text": ["영양제 잔뜩 먹어도 피곤한 이유"]
+    }
+  ],
+  "reusable_patterns": [
+    "Start with a relatable problem or question",
+    "Show product by ~3-4 seconds",
+    "Include testimonials before CTA"
+  ]
+}
+```
+
+#### Domain Categories
+
+| Domain | Description |
+|--------|-------------|
+| `ads/supplements` | Health supplements advertising |
+| `ads/cosmetics` | Beauty and skincare products |
+| `ads/food` | Food and beverage products |
+| `ads/etc` | Other advertising categories |
+| `content/education` | Educational content |
+| `content/medical` | Medical/health content |
+| `content/entertainment` | Entertainment content |
 
 ### Scene-Level Editing
 
@@ -470,9 +638,15 @@ domains/
 │       ├── footage_aware.py   # Script + footage catalog integration
 │       └── appeal_first.py    # 2-step: appeal analysis → sequence
 ├── planning/    # Sequence JSON parsing
-├── library/     # Video asset indexing & search (Gemini 3 Flash)
+├── library/     # Video asset indexing & search + reference ads (Gemini 3 Flash)
+│   ├── analyzer.py            # VideoContentAnalyzer for raw footage
+│   ├── repository.py          # AssetRepository: index storage + embedding search
+│   ├── selector.py            # FootageSelector: LLM-based clip ranking
 │   ├── catalog.py             # FootageCatalog for LLM-friendly summaries
-│   └── ...
+│   ├── reference_store.py     # ReferenceStore: collection-based reference management
+│   ├── reference_analyzer.py  # Gemini-based reference ad analyzer
+│   ├── reference_repository.py# Reference embedding search
+│   └── reference_models.py    # ReferenceAdAnalysis, ReferenceAdBeat models
 ├── studio/      # Content generation
 │   ├── tts_generator.py       # Google Cloud TTS (Chirp v3)
 │   ├── image_generator.py     # Gemini 3 Pro Image
@@ -504,12 +678,18 @@ scripts/
 ├── test_sequence.py         # Sequence generation testing
 ├── convert_lottie_to_mov.py # Lottie JSON → MOV conversion
 ├── convert_mov_to_mp4.py    # Format conversion
-└── update_presets.py        # Sync preset JSON files from providers
+├── update_presets.py        # Sync preset JSON files from providers
+├── download_fb_ads.py       # Download Facebook Ads Library videos
+└── analyze_references.py    # Analyze reference ads with Gemini
 
 assets/
-├── presets/      # Preset definitions for sequence generation
+├── presets/          # Preset definitions for sequence generation
 │   ├── lottie_presets.json
 │   └── sfx_presets.json
+├── references/       # Reference ads (collection-based management)
+│   ├── index.json    # Collection summaries
+│   └── collections/  # Per-collection folders
+│       └── {slug}/   # collection.json, items/{id}/video.mp4, analysis.json, etc.
 └── stock/
     ├── lottie/       # Source Lottie JSON files
     ├── lottie_mov/   # Pre-rendered MOV files (ProRes 4444 with alpha)
@@ -522,7 +702,8 @@ assets/
 |---------|-------|----------|
 | Sequence Generation | gemini-3-flash-preview | global |
 | Video Analysis | gemini-3-flash-preview | global |
-| Footage Selection | gemini-2.0-flash | global |
+| Reference Ad Analysis | gemini-3-flash-preview | global |
+| Footage Selection | gemini-2.5-flash-lite | global |
 | Embedding | text-embedding-005 | global |
 | Image Generation | gemini-3-pro-image-preview | global |
 | Video Generation | veo-3.1-generate-preview | us-central1 (required) |

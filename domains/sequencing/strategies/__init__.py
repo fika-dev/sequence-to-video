@@ -2,11 +2,13 @@ from domains.sequencing.strategies.appeal_first import AppealFirstStrategy
 from domains.sequencing.strategies.base import SequencingStrategy
 from domains.sequencing.strategies.default import DefaultStrategy
 from domains.sequencing.strategies.footage_aware import FootageAwareStrategy
+from domains.sequencing.strategies.reference_guided import ReferenceGuidedStrategy
 
 STRATEGIES: dict[str, type[SequencingStrategy]] = {
     "default": DefaultStrategy,
     "footage_aware": FootageAwareStrategy,
     "appeal_first": AppealFirstStrategy,
+    "reference_guided": ReferenceGuidedStrategy,
 }
 
 
@@ -22,6 +24,7 @@ __all__ = [
     "DefaultStrategy",
     "FootageAwareStrategy",
     "AppealFirstStrategy",
+    "ReferenceGuidedStrategy",
     "STRATEGIES",
     "load_strategy",
 ]

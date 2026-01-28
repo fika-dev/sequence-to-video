@@ -1,15 +1,18 @@
 import json
 from pathlib import Path
+from typing import Optional
 
 from google import genai
 from google.genai import types
 
 from domains.library.catalog import FootageCatalog, load_catalog_from_directory
+from domains.library.reference_store import ReferenceRepositoryAdapter, ReferenceStore
 from domains.sequencing.models import SequenceMetadata
 from domains.sequencing.strategies import SequencingStrategy, load_strategy
 
 PRESETS_DIR = Path("assets/presets")
 LIBRARY_INDEX_DIR = Path("assets/library_index")
+REFERENCES_DIR = Path("assets/references")
 
 
 def _load_presets(filename: str) -> dict:
@@ -66,6 +69,25 @@ class SequenceGenerator:
             location=location,
         )
         self._catalog: FootageCatalog | None = None
+        self._reference_repo: Optional[ReferenceRepositoryAdapter] = None
+
+    def _load_reference_repository(self) -> Optional[ReferenceRepositoryAdapter]:
+        if self._reference_repo is not None:
+            return self._reference_repo
+
+        if not REFERENCES_DIR.exists():
+            return None
+
+        store = ReferenceStore(REFERENCES_DIR)
+        collections = store.list_collections()
+        if not collections:
+            return None
+
+        self._reference_repo = ReferenceRepositoryAdapter(
+            store=store,
+            project=self.project,
+        )
+        return self._reference_repo
 
     def _load_footage_catalog(self) -> FootageCatalog | None:
         if self._catalog is not None:
@@ -137,6 +159,13 @@ class SequenceGenerator:
             else:
                 print("  Footage catalog: (not available)")
 
+            if self.strategy.name == "reference_guided":
+                repo = self._load_reference_repository()
+                if repo:
+                    print(f"  Reference ads: {len(repo.get_all_analyses())} analyzed")
+                else:
+                    print("  Reference ads: (not available)")
+
         if self.strategy.is_multi_step:
             response_text = self._run_multi_step(script, verbose)
         else:
@@ -174,6 +203,9 @@ class SequenceGenerator:
         step_context: dict = {}
         response_text = ""
 
+        if self.strategy.name == "reference_guided":
+            step_context["references_summary"] = self._prepare_references_summary(script, verbose)
+
         for i, step in enumerate(steps):
             if verbose:
                 print(f"  Step {i + 1}/{len(steps)}: {step}")
@@ -187,8 +219,33 @@ class SequenceGenerator:
                 step_context.update(parsed)
                 if verbose and "content_strategy" in parsed:
                     print("    Content strategy generated")
+                if verbose and "blueprint" in parsed:
+                    print("    Blueprint generated")
+                if verbose and "beat_casting" in parsed:
+                    print("    Beat casting completed")
 
         return response_text
+
+    def _prepare_references_summary(self, script: str, verbose: bool = False) -> str:
+        repo = self._load_reference_repository()
+        if not repo:
+            if verbose:
+                print("  Reference repository: (not available)")
+            return "(No reference ads available)"
+
+        catalog = self._load_footage_catalog()
+        product_context = catalog.get_product_context() if catalog else ""
+
+        query = f"{product_context} {script}".strip()[:500]
+        references = repo.find_similar_references(query, max_results=3)
+
+        if verbose:
+            print(f"  Reference repository: {len(repo.get_all_analyses())} ads")
+            print(f"  Selected references: {len(references)}")
+            for ref in references:
+                print(f"    - {ref.ad_id}: {ref.framework} ({ref.one_sentence_positioning[:50]}...)")
+
+        return repo.to_prompt_format(references)
 
     def generate_from_file(
         self,
