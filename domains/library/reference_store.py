@@ -660,11 +660,29 @@ class GCSSyncManager:
 
 
 class ReferenceRepositoryAdapter:
-    def __init__(self, store: ReferenceStore, project: Optional[str] = None):
+    def __init__(
+        self,
+        store: ReferenceStore,
+        project: Optional[str] = None,
+        embedding_model: str = "text-embedding-005",
+    ):
         self.store = store
         self.project = project
+        self.embedding_model = embedding_model
         self._analyses: list[Any] = []
+        self._embedding_client: Optional[Any] = None
         self._load_analyses()
+
+    @property
+    def embedding_client(self) -> Any:
+        if self._embedding_client is None:
+            from google import genai
+            self._embedding_client = genai.Client(
+                vertexai=True,
+                project=self.project,
+                location="global",
+            )
+        return self._embedding_client
 
     def _load_analyses(self) -> None:
         from domains.library.reference_models import (
@@ -743,12 +761,104 @@ class ReferenceRepositoryAdapter:
         product_category: Optional[str] = None,
         framework: Optional[str] = None,
     ) -> list[Any]:
-        filtered = []
+        query_embedding = self._generate_query_embedding(query)
+        if not query_embedding:
+            return self._filter_analyses(product_category, framework)[:max_results]
+
+        import math
+
+        scored: list[tuple[float, Any]] = []
         for analysis in self._analyses:
             if product_category and analysis.product_category != product_category:
                 continue
             if framework and analysis.framework != framework:
                 continue
-            filtered.append(analysis)
+            if not analysis.ad_fingerprint_embedding:
+                continue
 
-        return filtered[:max_results]
+            similarity = self._cosine_similarity(query_embedding, analysis.ad_fingerprint_embedding)
+            scored.append((similarity, analysis))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+
+        results = []
+        frameworks_seen: dict[str, int] = {}
+        for _, analysis in scored:
+            fw = analysis.framework
+            if frameworks_seen.get(fw, 0) >= 2:
+                continue
+            frameworks_seen[fw] = frameworks_seen.get(fw, 0) + 1
+            results.append(analysis)
+            if len(results) >= max_results:
+                break
+
+        return results
+
+    def _filter_analyses(
+        self,
+        product_category: Optional[str] = None,
+        framework: Optional[str] = None,
+    ) -> list[Any]:
+        results = []
+        for analysis in self._analyses:
+            if product_category and analysis.product_category != product_category:
+                continue
+            if framework and analysis.framework != framework:
+                continue
+            results.append(analysis)
+        return results
+
+    def _generate_query_embedding(self, text: str) -> list[float]:
+        try:
+            response = self.embedding_client.models.embed_content(
+                model=self.embedding_model,
+                contents=[text],
+            )
+            return response.embeddings[0].values
+        except Exception:
+            return []
+
+    def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
+        import math
+        if len(a) != len(b) or not a:
+            return 0.0
+        dot_product = sum(x * y for x, y in zip(a, b))
+        norm_a = math.sqrt(sum(x * x for x in a))
+        norm_b = math.sqrt(sum(x * x for x in b))
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+        return dot_product / (norm_a * norm_b)
+
+    def to_prompt_format(self, analyses: list[Any], max_beats: int = 4) -> str:
+        if not analyses:
+            return "(No reference ads available)"
+
+        lines = []
+        for i, analysis in enumerate(analyses, 1):
+            lines.append(f"## Reference Ad {i}: {analysis.ad_id}")
+            lines.append(f"- Framework: {analysis.framework}")
+            lines.append(f"- Positioning: {analysis.one_sentence_positioning}")
+            if analysis.target_audience:
+                lines.append(f"- Target Audience: {analysis.target_audience}")
+            if analysis.core_pain_point:
+                lines.append(f"- Pain Point: {analysis.core_pain_point}")
+            if analysis.core_promise:
+                lines.append(f"- Promise: {analysis.core_promise}")
+
+            pacing = analysis.pacing
+            lines.append(f"- Pacing: hook={pacing.hook_duration}s, first_product={pacing.first_product_reveal_time}s, first_cta={pacing.first_cta_time}s")
+
+            if analysis.reusable_patterns:
+                lines.append("- Patterns:")
+                for pattern in analysis.reusable_patterns[:5]:
+                    lines.append(f"  * {pattern}")
+
+            lines.append("- Beats:")
+            for beat in analysis.beats[:max_beats]:
+                lines.append(f"  * [{beat.start_time:.1f}-{beat.end_time:.1f}s] {beat.narrative_role}: {beat.visual_summary[:80]}")
+                if beat.on_screen_text:
+                    lines.append(f"    Text: {', '.join(beat.on_screen_text[:3])}")
+
+            lines.append("")
+
+        return "\n".join(lines)
