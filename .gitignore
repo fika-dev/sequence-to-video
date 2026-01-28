@@ -40,6 +40,8 @@ ENV/
 assets/generated/
 assets/review_output/
 assets/library_index/
+assets/references/
+assets/reference_index/
 
 # Media files
 *.mp4
